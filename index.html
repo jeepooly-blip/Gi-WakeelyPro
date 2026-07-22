@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function() {
+        try {
+          let currentFetch = window.fetch || (typeof globalThis !== 'undefined' ? globalThis.fetch : null);
+          if (currentFetch) {
+            const desc = {
+              get() { return currentFetch; },
+              set(val) { currentFetch = val; },
+              configurable: true,
+              enumerable: true
+            };
+
+            // Try defining directly on window
+            try {
+              Object.defineProperty(window, 'fetch', desc);
+            } catch (e1) {
+              console.warn("Could not define fetch getter/setter on window, trying prototype...", e1);
+            }
+
+            // Try defining on Window.prototype
+            try {
+              if (typeof Window !== 'undefined' && Window.prototype) {
+                Object.defineProperty(Window.prototype, 'fetch', desc);
+              }
+            } catch (e2) {
+              console.warn("Could not define fetch getter/setter on Window.prototype...", e2);
+            }
+
+            // Try defining on globalThis
+            if (typeof globalThis !== 'undefined' && globalThis !== window) {
+              try {
+                Object.defineProperty(globalThis, 'fetch', desc);
+              } catch (e3) {
+                console.warn("Could not define fetch getter/setter on globalThis...", e3);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Fetch getter/setter patch failed completely:", e);
+        }
+      })();
+    </script>
+    <title>My Google AI Studio App</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

@@ -1,0 +1,6 @@
+{
+  "name": "Wakeely Pro",
+  "description": "Enterprise Case Management Add-on for Lawyers & Law Firms, supporting multi-party case tracking, document control, workflow automation, and client portals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

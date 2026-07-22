@@ -1,0 +1,109 @@
+{
+  "entities": {
+    "matters": {
+      "title": "Matters",
+      "description": "Legal matters and cases",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "jurisdiction": { "type": "string" },
+        "clientName": { "type": "string" },
+        "clientEmail": { "type": "string" },
+        "opposingParty": { "type": "string" },
+        "opposingCounsel": { "type": "string" },
+        "judge": { "type": "string" },
+        "court": { "type": "string" },
+        "statuteOfLimitations": { "type": "string" },
+        "riskLevel": { "type": "string" },
+        "status": { "type": "string" },
+        "winProbability": { "type": "number" },
+        "budget": { "type": "number" },
+        "expenses": { "type": "number" }
+      },
+      "required": ["title", "clientName", "status"]
+    },
+    "documents": {
+      "title": "Documents",
+      "description": "Legal documents attached to matters",
+      "properties": {
+        "matterId": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "version": { "type": "number" },
+        "uploadedAt": { "type": "string" },
+        "uploadedBy": { "type": "string" },
+        "fileSize": { "type": "string" },
+        "visibleToClient": { "type": "boolean" },
+        "aiSummary": { "type": "string" },
+        "aiTags": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["matterId", "name"]
+    },
+    "tasks": {
+      "title": "Tasks",
+      "description": "Litigation and case workflow tasks",
+      "properties": {
+        "matterId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "assignedTo": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "status": { "type": "string" },
+        "priority": { "type": "string" },
+        "visibleToClient": { "type": "boolean" }
+      },
+      "required": ["matterId", "title"]
+    },
+    "timeEntries": {
+      "title": "Time Entries",
+      "description": "Billed time entries",
+      "properties": {
+        "matterId": { "type": "string" },
+        "description": { "type": "string" },
+        "hours": { "type": "number" },
+        "rate": { "type": "number" },
+        "date": { "type": "string" },
+        "billed": { "type": "boolean" }
+      },
+      "required": ["matterId", "description", "hours"]
+    },
+    "invoices": {
+      "title": "Invoices",
+      "description": "Client invoices",
+      "properties": {
+        "matterId": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "issueDate": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string" },
+        "paymentTxId": { "type": "string" }
+      },
+      "required": ["matterId", "invoiceNumber", "totalAmount"]
+    },
+    "clientMessages": {
+      "title": "Client Messages",
+      "description": "Portal messages",
+      "properties": {
+        "matterId": { "type": "string" },
+        "sender": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["matterId", "sender", "text"]
+    },
+    "timelineEvents": {
+      "title": "Timeline Events",
+      "description": "Case audit trail and timeline events",
+      "properties": {
+        "matterId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string" },
+        "visibleToClient": { "type": "boolean" },
+        "type": { "type": "string" }
+      },
+      "required": ["matterId", "title", "date"]
+    }
+  }
+}
