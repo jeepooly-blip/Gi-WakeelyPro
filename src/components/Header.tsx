@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, User, Landmark, Plus, RefreshCw, Folder, Languages, Bell, Inbox, Check, FileCheck, Calendar, MessageSquare, Search, Sparkles, Fingerprint, Scan, Sun, Moon, Printer } from 'lucide-react';
+import { Shield, ShieldCheck, User, Landmark, Plus, RefreshCw, Folder, Languages, Bell, Inbox, Check, FileCheck, Calendar, MessageSquare, Search, Sparkles, Fingerprint, Scan, Sun, Moon, Printer } from 'lucide-react';
 import { Matter } from '../types';
 import { useLanguage } from '../lib/LanguageContext';
 import { useTheme } from '../lib/ThemeContext';
 import { translateStaticText } from '../lib/i18n';
 import MobileBottomNav from './MobileBottomNav';
 import GlobalSearchModal from './GlobalSearchModal';
+import ConflictCheckModal from './ConflictCheckModal';
 
 interface HeaderProps {
   currentMode: 'Lawyer' | 'Client';
@@ -32,6 +33,7 @@ export default function Header({
   const { theme, toggleTheme, isDark } = useTheme();
   const [showModal, setShowModal] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showConflictModal, setShowConflictModal] = useState(false);
   const [title, setTitle] = useState('');
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
@@ -584,6 +586,18 @@ export default function Header({
           )}
         </div>
 
+        {/* Conflict Check Trigger */}
+        {currentMode === 'Lawyer' && (
+          <button
+            onClick={() => setShowConflictModal(true)}
+            className="px-2.5 py-2 bg-indigo-900 hover:bg-indigo-950 border border-indigo-700/80 rounded-xl text-xs font-bold text-indigo-100 shadow-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+            title={isRtl ? 'فحص تعارض المصالح الأخلاقي' : 'Ethics & Conflict Check'}
+          >
+            <ShieldCheck className="w-4 h-4 text-indigo-300 shrink-0" />
+            <span className="hidden xl:inline">{isRtl ? 'فحص التعارض' : 'Conflict Check'}</span>
+          </button>
+        )}
+
         {/* Create Matter Trigger (Lawyer Only) */}
         {currentMode === 'Lawyer' && (
           <button
@@ -811,6 +825,13 @@ export default function Header({
       onClose={() => setShowSearchModal(false)}
       matters={matters}
       onSelectResult={handleSelectSearchResult}
+    />
+
+    {/* Ethics Conflict Check Modal */}
+    <ConflictCheckModal
+      isOpen={showConflictModal}
+      onClose={() => setShowConflictModal(false)}
+      matters={matters}
     />
     </>
   );

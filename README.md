@@ -39,7 +39,17 @@
 - **Unified Workflow Board**: Switch between Single-Case Kanban and Firm-Wide Cross-Case Task Boards.
 - **Task Dependency Locks**: Enforces strict procedural sequences (e.g. Task B is locked until Task A is signed off).
 
-### 7. 🤝 Secure Client Portal
+### 7. ⚔️ Trial War Room & Hearing Binder (`WarRoomModule`)
+- **Witness Examination Binders**: Fact witness, expert witness, and adverse party outlines with attack vector lists.
+- **Master Trial Exhibit Ledger**: Plaintiff (P-1..P-50) & Defendant (D-1..D-50) tracking with court admission statuses (Admitted, Marked, Objected/Excluded).
+- **AI Rebuttal Generator**: Real-time Gemini copilot for generating instant statutory counter-arguments during active trial proceedings.
+
+### 8. 🛡️ Ethics & Conflict of Interest Check Engine (`ConflictCheckModal`)
+- **Instant Entity Search**: Searches parties, commercial registration (CR) numbers, corporate parents, subsidiaries, and key executives across all firm matters.
+- **Ethical Clearance Certificates**: Generates verifiable compliance certificates (`WKL-ETH-XXXXXX`).
+- **Ethical Wall Isolation**: Instant one-click establishment of information barriers on conflicting matters.
+
+### 9. 🤝 Secure Client Portal
 - **Client Transparency Dashboard**: Encrypted portal for clients to view case progress, review shared public filings, and inspect unbilled time entries.
 - **Real-Time Encrypted Messaging**: Direct client-attorney communication channel.
 

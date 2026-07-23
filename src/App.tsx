@@ -5,6 +5,7 @@ import DocumentsModule from './components/DocumentsModule';
 import TasksModule from './components/TasksModule';
 import BillingModule from './components/BillingModule';
 import AiModule from './components/AiModule';
+import WarRoomModule from './components/WarRoomModule';
 import ClientPortal from './components/ClientPortal';
 import AnalyticsModule from './components/AnalyticsModule';
 import CalendarModule from './components/CalendarModule';
@@ -221,9 +222,16 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Row 4: AI Pleading Copilot */}
+              {/* Row 4: Trial War Room Prep & AI Pleading Copilot */}
               <div id="ai-module" className={activeMobileTab !== 'all' && activeMobileTab !== 'ai' ? 'hidden lg:block' : 'block'}>
-                <AiModule activeMatter={activeMatter} />
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-3 sm:gap-4 md:gap-6">
+                  <div className="xl:col-span-6">
+                    <WarRoomModule activeMatter={activeMatter} />
+                  </div>
+                  <div className="xl:col-span-6">
+                    <AiModule activeMatter={activeMatter} />
+                  </div>
+                </div>
               </div>
 
             </div>
