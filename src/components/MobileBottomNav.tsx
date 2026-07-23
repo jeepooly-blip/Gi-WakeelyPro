@@ -19,7 +19,9 @@ import {
   CheckCircle2,
   Lock,
   Search,
-  Scale
+  Scale,
+  Fingerprint,
+  Scan
 } from 'lucide-react';
 import { useLanguage } from '../lib/LanguageContext';
 import { translateStaticText } from '../lib/i18n';
@@ -34,6 +36,7 @@ interface MobileBottomNavProps {
   onOpenNotifications: () => void;
   onOpenSearch?: () => void;
   onOpenNewMatterModal: () => void;
+  onOpenBiometrics?: () => void;
   matters: Matter[];
   activeMatterId: string;
   onActiveMatterChange: (id: string) => void;
@@ -48,6 +51,7 @@ export default function MobileBottomNav({
   onOpenNotifications,
   onOpenSearch,
   onOpenNewMatterModal,
+  onOpenBiometrics,
   matters,
   activeMatterId,
   onActiveMatterChange
@@ -127,8 +131,19 @@ export default function MobileBottomNav({
             </button>
           </div>
 
-          {/* Right Top Actions: Global Search, Lang Switcher & Notification Bell */}
+          {/* Right Top Actions: Global Search, Biometrics, Lang Switcher & Notification Bell */}
           <div className="flex items-center gap-1.5 shrink-0">
+            {/* Biometric Security Lock Button */}
+            {onOpenBiometrics && currentMode === 'Lawyer' && (
+              <button
+                onClick={onOpenBiometrics}
+                className="p-2 bg-slate-900 text-emerald-400 rounded-xl border border-indigo-500/30 transition-all cursor-pointer active:scale-95 shadow-xs"
+                title={isRtl ? 'الأمان البيومتري (Face ID / بصمة)' : 'Biometric Auth'}
+              >
+                <Fingerprint className="w-4 h-4 stroke-[2.2]" />
+              </button>
+            )}
+
             {/* Global Search Button */}
             {onOpenSearch && (
               <button
@@ -308,6 +323,25 @@ export default function MobileBottomNav({
                     </div>
                     <span className="bg-indigo-600 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">PRO</span>
                   </button>
+
+                  {/* Endpoint 6: Biometric Security Auth */}
+                  {onOpenBiometrics && currentMode === 'Lawyer' && (
+                    <button
+                      onClick={() => {
+                        setShowSideDrawer(false);
+                        onOpenBiometrics();
+                      }}
+                      className="w-full p-2.5 rounded-xl bg-slate-900 text-emerald-300 border border-indigo-500/30 hover:bg-slate-800 flex items-center justify-between text-xs font-bold transition-all cursor-pointer group mt-1"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Fingerprint className="w-4 h-4" />
+                        </div>
+                        <span>{isRtl ? 'بصمة الأمان (Face ID / الأصبع)' : 'Biometric Security Auth'}</span>
+                      </div>
+                      {isRtl ? <ChevronLeft className="w-4 h-4 text-emerald-400" /> : <ChevronRight className="w-4 h-4 text-emerald-400" />}
+                    </button>
+                  )}
                 </div>
               </div>
 

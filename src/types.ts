@@ -83,3 +83,18 @@ export interface TimelineEvent {
   visibleToClient: boolean;
   type?: string;
 }
+
+export interface CalendarEvent {
+  id: string;
+  matterId: string;
+  title: string;
+  description: string;
+  startDate: string;
+  endDate?: string;
+  time?: string;
+  location?: string;
+  category: 'Hearing' | 'Court Deadline' | 'Client Meeting' | 'Filing' | 'Arbitration';
+  syncedToGoogleCalendar?: boolean;
+  googleEventId?: string;
+}
+

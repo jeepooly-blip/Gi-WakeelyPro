@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, User, Landmark, Plus, RefreshCw, Folder, Languages, Bell, Inbox, Check, FileCheck, Calendar, MessageSquare, Search } from 'lucide-react';
+import { Shield, User, Landmark, Plus, RefreshCw, Folder, Languages, Bell, Inbox, Check, FileCheck, Calendar, MessageSquare, Search, Sparkles, Fingerprint, Scan } from 'lucide-react';
 import { Matter } from '../types';
 import { useLanguage } from '../lib/LanguageContext';
 import { translateStaticText } from '../lib/i18n';
@@ -13,6 +13,8 @@ interface HeaderProps {
   activeMatterId: string;
   onActiveMatterChange: (id: string) => void;
   onNewMatterCreated: (newMatter: Matter) => void;
+  onShowLandingPage?: () => void;
+  onOpenBiometrics?: () => void;
 }
 
 export default function Header({
@@ -21,7 +23,9 @@ export default function Header({
   matters,
   activeMatterId,
   onActiveMatterChange,
-  onNewMatterCreated
+  onNewMatterCreated,
+  onShowLandingPage,
+  onOpenBiometrics
 }: HeaderProps) {
   const { language, setLanguage, t, isRtl } = useLanguage();
   const [showModal, setShowModal] = useState(false);
@@ -337,6 +341,7 @@ export default function Header({
         onOpenNotifications={() => setShowNotificationDropdown(true)}
         onOpenSearch={() => setShowSearchModal(true)}
         onOpenNewMatterModal={() => setShowModal(true)}
+        onOpenBiometrics={onOpenBiometrics}
         matters={matters}
         activeMatterId={activeMatterId}
         onActiveMatterChange={onActiveMatterChange}
@@ -585,6 +590,30 @@ export default function Header({
           >
             <Plus className="w-4 h-4" />
             <span>{t.newIntake}</span>
+          </button>
+        )}
+
+        {/* Biometric Security Lock Button */}
+        {onOpenBiometrics && currentMode === 'Lawyer' && (
+          <button
+            onClick={onOpenBiometrics}
+            className="px-2.5 py-2 bg-slate-900 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer hover:bg-slate-800 shrink-0"
+            title={isRtl ? 'الأمان البيومتري (FaceID / بصمة)' : 'Biometric Security (FaceID / TouchID)'}
+          >
+            <Fingerprint className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="hidden md:inline">{isRtl ? 'بصمة الأمان' : 'Biometric Auth'}</span>
+          </button>
+        )}
+
+        {/* Landing Page Showcase Button */}
+        {onShowLandingPage && (
+          <button
+            onClick={onShowLandingPage}
+            className="hidden sm:flex px-3 py-2 bg-slate-900 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-xl text-xs font-bold items-center gap-1.5 shadow-xs transition-all cursor-pointer hover:bg-slate-800 shrink-0"
+            title={isRtl ? 'الصفحة التعريفية للموقع' : 'View Landing Showcase'}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>{isRtl ? 'الصفحة التعريفية' : 'Landing Showcase'}</span>
           </button>
         )}
 

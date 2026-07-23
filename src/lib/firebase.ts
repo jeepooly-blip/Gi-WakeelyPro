@@ -6,6 +6,6 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 export const db = initializeFirestore(app, {
   experimentalAutoDetectLongPolling: true,
-}, firebaseConfig.firestoreDatabaseId || '(default)');
+}, (firebaseConfig as any).firestoreDatabaseId || '(default)');
 
 export default app;

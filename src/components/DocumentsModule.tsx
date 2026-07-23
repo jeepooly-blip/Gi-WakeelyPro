@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Folder, FileText, UploadCloud, Eye, EyeOff, Sparkles, RefreshCw, FileCheck, Check, Plus, HelpCircle } from 'lucide-react';
+import { Folder, FileText, UploadCloud, Eye, EyeOff, Sparkles, RefreshCw, FileCheck, Check, Plus, HelpCircle, Fingerprint, ShieldCheck } from 'lucide-react';
 import { Document } from '../types';
 import { useLanguage } from '../lib/LanguageContext';
 import { translateStaticText } from '../lib/i18n';
 import { saveItemsToOfflineStore, getByMatterIdFromOfflineStore, STORES } from '../lib/offlineStorage';
+import BiometricAuthModal from './BiometricAuthModal';
 
 interface DocumentsModuleProps {
   matterId: string;
@@ -20,6 +21,8 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
   const [uploading, setUploading] = useState(false);
   const [aiAnalyzingId, setAiAnalyzingId] = useState<string | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+  const [unlockedDocIds, setUnlockedDocIds] = useState<string[]>([]);
+  const [showBiometricVerifyForDoc, setShowBiometricVerifyForDoc] = useState<Document | null>(null);
 
   const fetchDocs = async () => {
     setLoading(true);
@@ -272,6 +275,19 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
                       {doc.visibleToClient ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                     </button>
 
+                    {/* Biometric Scan Action */}
+                    <button
+                      onClick={() => setShowBiometricVerifyForDoc(doc)}
+                      title={unlockedDocIds.includes(doc.id) ? (isRtl ? 'تم التحقق بالبصمة' : 'Biometric Verified') : (isRtl ? 'المصادقة بالبصمة قبل الفتح' : 'Verify Biometrics to Unlock')}
+                      className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                        unlockedDocIds.includes(doc.id)
+                          ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                          : 'bg-slate-900 text-emerald-400 border-indigo-500/30 hover:bg-slate-800'
+                      }`}
+                    >
+                      <Fingerprint className="w-3.5 h-3.5" />
+                    </button>
+
                     {/* AI Summarize action */}
                     <button
                       onClick={() => triggerGeminiSummarization(doc.id, doc.name, doc.category)}
@@ -386,6 +402,23 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
           )}
         </div>
       </div>
+
+      {/* Biometric Verification Modal for Document Access */}
+      {showBiometricVerifyForDoc && (
+        <BiometricAuthModal
+          isOpen={true}
+          mode="verify"
+          title={isRtl ? `تأكيد البصمة لفتح: ${showBiometricVerifyForDoc.name}` : `Biometric Verification: ${showBiometricVerifyForDoc.name}`}
+          subtitle={isRtl ? 'المصادقة بواسطة بصمة الوجه أو الأصبع للوصول الآمن للوثائق القضائية السرية' : 'Scan Face ID or Touch ID to view confidential case documents'}
+          onClose={() => setShowBiometricVerifyForDoc(null)}
+          onSuccess={() => {
+            if (!unlockedDocIds.includes(showBiometricVerifyForDoc.id)) {
+              setUnlockedDocIds(prev => [...prev, showBiometricVerifyForDoc.id]);
+            }
+            setSelectedDoc(showBiometricVerifyForDoc);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -7,6 +7,9 @@ import BillingModule from './components/BillingModule';
 import AiModule from './components/AiModule';
 import ClientPortal from './components/ClientPortal';
 import AnalyticsModule from './components/AnalyticsModule';
+import CalendarModule from './components/CalendarModule';
+import LandingPage from './components/LandingPage';
+import BiometricAuthModal from './components/BiometricAuthModal';
 import { Matter } from './types';
 import { RefreshCw, Scale, Sparkles, FolderOpen, CalendarClock, WifiOff, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from './lib/LanguageContext';
@@ -14,13 +17,15 @@ import { saveItemsToOfflineStore, getAllFromOfflineStore, STORES } from './lib/o
 
 export default function App() {
   const { t, isRtl } = useLanguage();
+  const [currentView, setCurrentView] = useState<'landing' | 'workspace'>('landing');
   const [matters, setMatters] = useState<Matter[]>([]);
   const [activeMatterId, setActiveMatterId] = useState<string>('');
   const [currentMode, setCurrentMode] = useState<'Lawyer' | 'Client'>('Lawyer');
   const [loading, setLoading] = useState(true);
-  const [activeMobileTab, setActiveMobileTab] = useState<'all' | 'analytics' | 'tasks' | 'docs' | 'ai'>('all');
+  const [activeMobileTab, setActiveMobileTab] = useState<'all' | 'analytics' | 'tasks' | 'calendar' | 'docs' | 'ai'>('all');
   const [isOffline, setIsOffline] = useState<boolean>(!navigator.onLine);
   const [usingCachedData, setUsingCachedData] = useState<boolean>(false);
+  const [biometricModalMode, setBiometricModalMode] = useState<'verify' | 'settings' | null>(null);
 
   // Monitor network status
   useEffect(() => {
@@ -118,6 +123,21 @@ export default function App() {
     );
   }
 
+  if (currentView === 'landing') {
+    return (
+      <LandingPage
+        onEnterWorkspace={() => {
+          setCurrentView('workspace');
+          setCurrentMode('Lawyer');
+        }}
+        onEnterClientPortal={() => {
+          setCurrentView('workspace');
+          setCurrentMode('Client');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="bg-slate-50 min-h-screen p-2 sm:p-4 md:p-8 pb-24 lg:pb-8 text-slate-900 font-sans flex flex-col justify-between" id="app-root">
       
@@ -147,6 +167,8 @@ export default function App() {
         activeMatterId={activeMatterId}
         onActiveMatterChange={(id) => setActiveMatterId(id)}
         onNewMatterCreated={handleNewMatterCreated}
+        onShowLandingPage={() => setCurrentView('landing')}
+        onOpenBiometrics={() => setBiometricModalMode('settings')}
       />
 
       {/* Main Panel Controller */}
@@ -174,6 +196,11 @@ export default function App() {
                     <TasksModule matterId={activeMatter.id} />
                   </div>
                 </div>
+              </div>
+
+              {/* Row 2.5: Google Calendar Court Hearing & Deadline Sync */}
+              <div id="calendar-module" className={activeMobileTab !== 'all' && activeMobileTab !== 'calendar' ? 'hidden lg:block' : 'block'}>
+                <CalendarModule matterId={activeMatter.id} matters={matters} />
               </div>
 
               {/* Row 3: Documents and Billing Operations */}
@@ -228,6 +255,15 @@ export default function App() {
         <span className="text-center">{t.copyright}</span>
         <span>{t.matrixVer}</span>
       </footer>
+
+      {/* Biometric Security Modal */}
+      {biometricModalMode && (
+        <BiometricAuthModal
+          isOpen={true}
+          mode={biometricModalMode}
+          onClose={() => setBiometricModalMode(null)}
+        />
+      )}
 
     </div>
   );
