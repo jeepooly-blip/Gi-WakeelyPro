@@ -139,7 +139,7 @@ export default function App() {
   }
 
   return (
-    <div className="bg-slate-50 min-h-screen p-2 sm:p-4 md:p-8 pb-24 lg:pb-8 text-slate-900 font-sans flex flex-col justify-between" id="app-root">
+    <div className="app-theme-wrapper min-h-screen p-2 sm:p-4 md:p-8 pb-24 lg:pb-8 text-slate-900 font-sans flex flex-col justify-between" id="app-root">
       
       {/* Offline Status Alert Banner */}
       {(isOffline || usingCachedData) && (
@@ -193,7 +193,7 @@ export default function App() {
                     />
                   </div>
                   <div className="xl:col-span-8">
-                    <TasksModule matterId={activeMatter.id} />
+                    <TasksModule matterId={activeMatter.id} matters={matters} />
                   </div>
                 </div>
               </div>

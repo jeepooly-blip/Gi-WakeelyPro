@@ -17,10 +17,13 @@ import {
   CalendarCheck,
   Building2,
   ShieldAlert,
-  Trash2
+  Trash2,
+  Landmark
 } from 'lucide-react';
 import { Matter, CalendarEvent, Task, TimelineEvent } from '../types';
 import { useLanguage } from '../lib/LanguageContext';
+import { translateStaticText } from '../lib/i18n';
+import CourtRulesCalendaringModule from './CourtRulesCalendaringModule';
 
 interface CalendarModuleProps {
   matterId: string;
@@ -34,7 +37,7 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncingAll, setSyncingAll] = useState(false);
-  const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month');
+  const [viewMode, setViewMode] = useState<'month' | 'agenda' | 'rules'>('month');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   
   // Date states for Month Grid
@@ -171,17 +174,17 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
   const getCategoryBadge = (cat: string) => {
     switch (cat) {
       case 'Hearing':
-        return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30';
+        return 'bg-teal-100 text-teal-950 border-teal-300 font-extrabold';
       case 'Court Deadline':
-        return 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+        return 'bg-rose-100 text-rose-950 border-rose-300 font-extrabold';
       case 'Client Meeting':
-        return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+        return 'bg-amber-100 text-amber-950 border-amber-300 font-extrabold';
       case 'Filing':
-        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+        return 'bg-emerald-100 text-emerald-950 border-emerald-300 font-extrabold';
       case 'Arbitration':
-        return 'bg-purple-500/10 text-purple-400 border-purple-500/30';
+        return 'bg-cyan-100 text-cyan-950 border-cyan-300 font-extrabold';
       default:
-        return 'bg-slate-800 text-slate-300 border-slate-700';
+        return 'bg-slate-100 text-slate-800 border-slate-300 font-bold';
     }
   };
 
@@ -197,31 +200,31 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
   const filteredEvents = filterCategory === 'all' ? events : events.filter((e) => e.category === filterCategory);
 
   return (
-    <div className="space-y-6 font-sans text-slate-100 pb-12">
+    <div className="space-y-6 font-sans text-slate-900 pb-12">
       
       {/* Toast alert message */}
       {syncToast && (
-        <div className="fixed top-20 right-4 z-50 bg-emerald-950 border border-emerald-500/40 text-emerald-200 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in duration-200">
+        <div className="fixed top-20 right-4 z-50 bg-teal-950 border border-teal-500 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in duration-200">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
           <span className="text-xs sm:text-sm font-bold">{syncToast}</span>
         </div>
       )}
 
       {/* Top Header Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-gradient-to-br from-teal-950 via-teal-900 to-teal-950 border border-teal-800/80 rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden text-white">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-teal-600/20 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-bold">
-              <CalendarCheck className="w-3.5 h-3.5 text-indigo-400" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-800/80 border border-teal-600/60 text-teal-200 text-xs font-bold">
+              <CalendarCheck className="w-3.5 h-3.5 text-teal-300" />
               <span>{isRtl ? 'تقويم الجلسات والمواعيد القضائية' : 'Court Calendar & Schedule Engine'}</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-white font-display">
               {isRtl ? 'التقويم القضائي ومزامنة Google Calendar' : 'Legal Calendar & Hearing Schedule'}
             </h2>
-            <p className="text-xs sm:text-sm text-slate-400 font-medium">
-              {activeMatter ? activeMatter.title : (isRtl ? 'جميع القضايا' : 'All Matters')}
+            <p className="text-xs sm:text-sm text-teal-100 font-medium">
+              {activeMatter ? translateStaticText(activeMatter.title, isRtl) : (isRtl ? 'جميع القضايا' : 'All Matters')}
             </p>
           </div>
 
@@ -230,12 +233,12 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
             <button
               onClick={handleSyncGoogleAll}
               disabled={syncingAll}
-              className="px-4 py-2.5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 border border-amber-400/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+              className="px-4 py-2.5 bg-white hover:bg-teal-50 text-teal-950 font-black text-xs rounded-xl shadow-md border border-teal-200 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 shrink-0"
             >
               {syncingAll ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
+                <RefreshCw className="w-4 h-4 animate-spin text-teal-800" />
               ) : (
-                <CalendarIcon className="w-4 h-4" />
+                <CalendarIcon className="w-4 h-4 text-teal-800" />
               )}
               <span>
                 {isRtl
@@ -247,7 +250,7 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
             {/* Add Event Button */}
             <button
               onClick={() => setShowAddModal(true)}
-              className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs rounded-xl shadow-lg shadow-indigo-600/30 border border-indigo-400/30 flex items-center gap-2 transition-all cursor-pointer shrink-0"
+              className="px-4 py-2.5 bg-teal-700 hover:bg-teal-800 text-white font-black text-xs rounded-xl shadow-md border border-teal-600 flex items-center gap-2 transition-all cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>{isRtl ? 'إضافة موعد / جلسة' : 'Add Court Date'}</span>
@@ -257,15 +260,15 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
 
         {/* Statute of Limitations Alert Box for Active Matter */}
         {activeMatter?.statuteOfLimitations && (
-          <div className="mt-4 p-3.5 bg-slate-950/80 rounded-2xl border border-rose-500/30 flex items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2.5 text-rose-300">
-              <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
+          <div className="mt-4 p-3.5 bg-rose-950/90 rounded-2xl border border-rose-500/40 flex items-center justify-between gap-3 text-xs text-rose-100">
+            <div className="flex items-center gap-2.5 text-rose-200">
+              <ShieldAlert className="w-4 h-4 text-rose-300 shrink-0" />
               <span>
-                <strong>{isRtl ? 'تاريخ تقادم القضية:' : 'Statute of Limitations:'}</strong>{' '}
+                <strong className="text-white">{isRtl ? 'تاريخ تقادم القضية:' : 'Statute of Limitations:'}</strong>{' '}
                 {activeMatter.statuteOfLimitations} ({activeMatter.court || 'Court'})
               </span>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-md">
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-rose-500/30 text-rose-200 border border-rose-400/40 px-2.5 py-1 rounded-md shrink-0">
               {isRtl ? 'تاريخ حرج' : 'Critical Date'}
             </span>
           </div>
@@ -273,7 +276,7 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
       </div>
 
       {/* View Switcher & Category Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/80 p-3 rounded-2xl border border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-teal-100 shadow-sm">
         
         {/* Category Pill Filters */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
@@ -281,10 +284,10 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
             <button
               key={cat}
               onClick={() => setFilterCategory(cat)}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 text-xs font-extrabold rounded-xl border transition-all cursor-pointer whitespace-nowrap ${
                 filterCategory === cat
-                  ? 'bg-indigo-600 text-white border-indigo-400/40 shadow-sm'
-                  : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+                  ? 'bg-teal-800 text-white border-teal-700 shadow-sm'
+                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-teal-50 hover:border-teal-200'
               }`}
             >
               {cat === 'all'
@@ -298,36 +301,47 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
 
         {/* View Mode Switcher */}
         <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-          <div className="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center gap-1">
+          <div className="bg-slate-100 p-1 rounded-xl border border-slate-200 flex items-center gap-1">
             <button
               onClick={() => setViewMode('month')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                viewMode === 'month' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-1.5 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${
+                viewMode === 'month' ? 'bg-teal-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               {isRtl ? 'شهري' : 'Month'}
             </button>
             <button
               onClick={() => setViewMode('agenda')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                viewMode === 'agenda' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-1.5 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${
+                viewMode === 'agenda' ? 'bg-teal-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               {isRtl ? 'جدول المواعيد' : 'Agenda'}
+            </button>
+            <button
+              onClick={() => setViewMode('rules')}
+              className={`px-3.5 py-1.5 text-xs font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                viewMode === 'rules' ? 'bg-teal-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Scale className="w-3.5 h-3.5 text-teal-300" />
+              {isRtl ? 'حاسبة المهل القضائية' : 'Court Rules Calculator'}
             </button>
           </div>
         </div>
       </div>
 
       {/* Main Content View */}
-      {viewMode === 'month' ? (
+      {viewMode === 'rules' ? (
+        <CourtRulesCalendaringModule activeMatter={activeMatter} onDeadlinesAdded={fetchEvents} />
+      ) : viewMode === 'month' ? (
         /* ================= MONTH GRID VIEW ================= */
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+        <div className="bg-white border border-teal-100/90 rounded-3xl p-5 shadow-sm space-y-4">
           
           {/* Calendar Month Navigation Header */}
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <h3 className="text-base sm:text-lg font-black text-white font-display flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5 text-indigo-400" />
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <h3 className="text-base sm:text-lg font-black text-teal-950 font-display flex items-center gap-2">
+              <CalendarIcon className="w-5 h-5 text-teal-700" />
               <span>
                 {isRtl ? monthNamesAr[month] : monthNamesEn[month]} {year}
               </span>
@@ -336,19 +350,19 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
-                className="p-2 bg-slate-950 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800 transition-all cursor-pointer"
+                className="p-2 bg-teal-50 hover:bg-teal-100 text-teal-900 rounded-xl border border-teal-200 transition-all cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setCurrentDate(new Date())}
-                className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 text-slate-300 text-xs font-bold rounded-xl border border-slate-800 transition-all cursor-pointer"
+                className="px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-900 text-xs font-bold rounded-xl border border-teal-200 transition-all cursor-pointer"
               >
                 {isRtl ? 'اليوم' : 'Today'}
               </button>
               <button
                 onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
-                className="p-2 bg-slate-950 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800 transition-all cursor-pointer"
+                className="p-2 bg-teal-50 hover:bg-teal-100 text-teal-900 rounded-xl border border-teal-200 transition-all cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -356,7 +370,7 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
           </div>
 
           {/* Weekday Names */}
-          <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs text-slate-400 pb-2 border-b border-slate-800/60">
+          <div className="grid grid-cols-7 gap-1 text-center font-extrabold text-xs text-teal-800 pb-2 border-b border-teal-100">
             {isRtl
               ? ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
               : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']}
@@ -366,7 +380,7 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
           <div className="grid grid-cols-7 gap-1.5">
             {/* Empty cells before month start */}
             {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-              <div key={`empty-${i}`} className="h-24 sm:h-28 bg-slate-950/20 rounded-2xl border border-slate-900/40" />
+              <div key={`empty-${i}`} className="h-24 sm:h-28 bg-slate-50/50 rounded-2xl border border-slate-100" />
             ))}
 
             {/* Days of the month */}
@@ -386,20 +400,20 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
                   key={`day-${dayNum}`}
                   className={`h-24 sm:h-28 p-1.5 sm:p-2 rounded-2xl border flex flex-col justify-between transition-all ${
                     isToday
-                      ? 'bg-indigo-950/40 border-indigo-500/60 shadow-inner'
-                      : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
+                      ? 'bg-teal-50 border-2 border-teal-600 shadow-xs'
+                      : 'bg-white border-slate-200 hover:border-teal-300'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span
-                      className={`text-xs font-extrabold w-6 h-6 rounded-full flex items-center justify-center ${
-                        isToday ? 'bg-indigo-600 text-white' : 'text-slate-300'
+                      className={`text-xs font-black w-6 h-6 rounded-full flex items-center justify-center ${
+                        isToday ? 'bg-teal-800 text-white' : 'text-slate-700'
                       }`}
                     >
                       {dayNum}
                     </span>
                     {dayEvents.length > 0 && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      <span className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
                     )}
                   </div>
 
@@ -409,13 +423,13 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
                       <div
                         key={ev.id}
                         onClick={() => handleSyncSingleEvent(ev.id)}
-                        className={`text-[10px] p-1 rounded-lg border leading-tight truncate cursor-pointer transition-transform hover:scale-102 ${getCategoryBadge(
+                        className={`text-[10px] p-1 rounded-lg border leading-tight truncate cursor-pointer transition-transform hover:scale-102 shadow-2xs ${getCategoryBadge(
                           ev.category
                         )}`}
                         title={`${ev.title} (${ev.time || ''}) - Click to sync with Google Calendar`}
                       >
-                        <div className="font-bold truncate">{ev.title}</div>
-                        {ev.time && <div className="text-[9px] opacity-80">{ev.time}</div>}
+                        <div className="font-extrabold truncate">{ev.title}</div>
+                        {ev.time && <div className="text-[9px] opacity-90 font-mono">{ev.time}</div>}
                       </div>
                     ))}
                   </div>
@@ -428,14 +442,14 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
         /* ================= AGENDA LIST VIEW ================= */
         <div className="space-y-3">
           {filteredEvents.length === 0 ? (
-            <div className="p-12 text-center bg-slate-900 border border-slate-800 rounded-3xl space-y-3">
-              <CalendarIcon className="w-10 h-10 text-slate-500 mx-auto" />
-              <p className="text-sm text-slate-400 font-medium">
+            <div className="p-12 text-center bg-white border border-teal-100 rounded-3xl space-y-3 shadow-sm">
+              <CalendarIcon className="w-10 h-10 text-teal-600 mx-auto" />
+              <p className="text-sm text-slate-600 font-bold">
                 {isRtl ? 'لا توجد مواعيد مضافة في هذه الفئة' : 'No calendar events found.'}
               </p>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl"
+                className="px-4 py-2 bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold rounded-xl shadow-sm cursor-pointer"
               >
                 {isRtl ? '+ إضافة جلسة جديدة' : '+ Add Event'}
               </button>
@@ -444,14 +458,14 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
             filteredEvents.map((ev) => (
               <div
                 key={ev.id}
-                className="p-4 sm:p-5 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all"
+                className="p-4 sm:p-5 bg-white border border-teal-100/90 hover:border-teal-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all shadow-xs"
               >
                 <div className="flex items-start gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col items-center justify-center shrink-0">
-                    <span className="text-[10px] font-bold text-indigo-400 uppercase">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-200 flex flex-col items-center justify-center shrink-0 text-teal-950 font-black">
+                    <span className="text-[10px] font-extrabold text-teal-700 uppercase">
                       {new Date(ev.startDate).toLocaleString('default', { month: 'short' })}
                     </span>
-                    <span className="text-sm font-black text-white">
+                    <span className="text-sm font-black text-teal-950">
                       {new Date(ev.startDate).getDate()}
                     </span>
                   </div>
@@ -462,28 +476,28 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
                         {ev.category}
                       </span>
                       {ev.syncedToGoogleCalendar && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                           <span>{isRtl ? 'مسنّد إلى Google' : 'Google Synced'}</span>
                         </span>
                       )}
                     </div>
 
-                    <h4 className="text-sm sm:text-base font-bold text-white">{ev.title}</h4>
+                    <h4 className="text-sm sm:text-base font-extrabold text-slate-900">{ev.title}</h4>
                     {ev.description && (
-                      <p className="text-xs text-slate-400 font-medium leading-relaxed">{ev.description}</p>
+                      <p className="text-xs text-slate-600 font-normal leading-relaxed">{ev.description}</p>
                     )}
 
-                    <div className="flex items-center gap-4 text-xs text-slate-400 pt-1 flex-wrap">
+                    <div className="flex items-center gap-4 text-xs text-slate-600 pt-1 flex-wrap">
                       {ev.time && (
-                        <span className="flex items-center gap-1 text-amber-300 font-bold">
-                          <Clock className="w-3.5 h-3.5" />
+                        <span className="flex items-center gap-1 text-teal-900 font-extrabold">
+                          <Clock className="w-3.5 h-3.5 text-teal-700" />
                           <span>{ev.time}</span>
                         </span>
                       )}
                       {ev.location && (
-                        <span className="flex items-center gap-1 text-slate-300">
-                          <MapPin className="w-3.5 h-3.5 text-indigo-400" />
+                        <span className="flex items-center gap-1 text-slate-700 font-semibold">
+                          <MapPin className="w-3.5 h-3.5 text-teal-700" />
                           <span>{ev.location}</span>
                         </span>
                       )}
@@ -491,20 +505,20 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0 self-end sm:self-center pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800 w-full sm:w-auto justify-end">
+                <div className="flex items-center gap-2 shrink-0 self-end sm:self-center pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 w-full sm:w-auto justify-end">
                   {!ev.syncedToGoogleCalendar && (
                     <button
                       onClick={() => handleSyncSingleEvent(ev.id)}
-                      className="px-3 py-1.5 bg-slate-950 hover:bg-slate-800 text-amber-300 text-xs font-bold rounded-xl border border-amber-500/30 flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-2 bg-teal-50 hover:bg-teal-100 text-teal-900 text-xs font-bold rounded-xl border border-teal-200 flex items-center gap-1.5 cursor-pointer shadow-2xs"
                     >
-                      <CalendarIcon className="w-3.5 h-3.5" />
+                      <CalendarIcon className="w-3.5 h-3.5 text-teal-700" />
                       <span>{isRtl ? 'مزامنة Google' : 'Sync Google'}</span>
                     </button>
                   )}
 
                   <button
                     onClick={() => handleDeleteEvent(ev.id)}
-                    className="p-2 text-slate-500 hover:text-rose-400 bg-slate-950 hover:bg-slate-800 rounded-xl border border-slate-800 transition-colors cursor-pointer"
+                    className="p-2 text-slate-400 hover:text-rose-600 bg-slate-50 hover:bg-rose-50 rounded-xl border border-slate-200 transition-colors cursor-pointer"
                     title={isRtl ? 'حذف الموعد' : 'Delete event'}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -518,27 +532,27 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
 
       {/* ================= NEW EVENT CREATION MODAL ================= */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg p-6 text-slate-100 shadow-2xl relative overflow-hidden font-sans space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-teal-100 rounded-3xl w-full max-w-lg p-6 text-slate-800 shadow-2xl relative overflow-hidden font-sans space-y-5">
             
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                <div className="w-9 h-9 rounded-xl bg-teal-100 border border-teal-200 flex items-center justify-center text-teal-800">
                   <CalendarIcon className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-white font-display">
+                  <h3 className="text-lg font-black text-slate-900 font-display">
                     {isRtl ? 'إضافة موعد أو جلسة محاكمة' : 'Schedule Court Date / Hearing'}
                   </h3>
-                  <p className="text-xs text-slate-400">
-                    {activeMatter ? activeMatter.title : (isRtl ? 'إضافة موعد' : 'Add event')}
+                  <p className="text-xs text-slate-500 font-semibold">
+                    {activeMatter ? translateStaticText(activeMatter.title, isRtl) : (isRtl ? 'إضافة موعد' : 'Add event')}
                   </p>
                 </div>
               </div>
 
               <button
                 onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-white p-1.5 rounded-xl bg-slate-800 cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl bg-slate-100 cursor-pointer font-bold"
               >
                 ✕
               </button>
@@ -548,7 +562,7 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
               
               {/* Event Title */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-300">
+                <label className="text-xs font-bold text-slate-700">
                   {isRtl ? 'عنوان الجلسة / الموعد *' : 'Event / Hearing Title *'}
                 </label>
                 <input
@@ -557,19 +571,19 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   placeholder={isRtl ? 'مثال: جلسة المرافعة الشفهية الأولى' : 'e.g., First Oral Pleading Hearing'}
-                  className="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-hidden"
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-teal-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-semibold placeholder-slate-400 focus:outline-hidden"
                 />
               </div>
 
               {/* Category Selector */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-300">
+                <label className="text-xs font-bold text-slate-700">
                   {isRtl ? 'تصنيف الموعد *' : 'Category *'}
                 </label>
                 <select
                   value={newCategory}
                   onChange={(e: any) => setNewCategory(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 text-xs text-white rounded-xl px-3.5 py-2.5 focus:outline-hidden cursor-pointer"
+                  className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-800 font-semibold rounded-xl px-3.5 py-2.5 focus:outline-hidden cursor-pointer"
                 >
                   <option value="Hearing">{isRtl ? 'جلسة محاكمة (Hearing)' : 'Hearing'}</option>
                   <option value="Court Deadline">{isRtl ? 'موعد تقديم لائحة (Court Deadline)' : 'Court Deadline'}</option>
@@ -582,7 +596,7 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
               {/* Date & Time Grid */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-300">
+                  <label className="text-xs font-bold text-slate-700">
                     {isRtl ? 'التاريخ *' : 'Date *'}
                   </label>
                   <input
@@ -590,12 +604,12 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
                     required
                     value={newDate}
                     onChange={(e) => setNewDate(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-hidden"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-semibold focus:outline-hidden"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-300">
+                  <label className="text-xs font-bold text-slate-700">
                     {isRtl ? 'الوقت' : 'Time'}
                   </label>
                   <input
@@ -603,14 +617,14 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
                     value={newTime}
                     onChange={(e) => setNewTime(e.target.value)}
                     placeholder="10:00 AM"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-hidden"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-semibold focus:outline-hidden"
                   />
                 </div>
               </div>
 
               {/* Location */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-300">
+                <label className="text-xs font-bold text-slate-700">
                   {isRtl ? 'المكان / القاعة' : 'Location / Court Room'}
                 </label>
                 <input
@@ -618,13 +632,13 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
                   value={newLocation}
                   onChange={(e) => setNewLocation(e.target.value)}
                   placeholder={activeMatter ? activeMatter.court : 'Court Room / Zoom'}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-hidden"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-semibold focus:outline-hidden"
                 />
               </div>
 
               {/* Description */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-300">
+                <label className="text-xs font-bold text-slate-700">
                   {isRtl ? 'ملاحظات / أهداف الجلسة' : 'Description / Prep Notes'}
                 </label>
                 <textarea
@@ -632,15 +646,15 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
                   placeholder={isRtl ? 'تفاصيل المرفقات ومذكرات المرافعة المطلوب تحضيرها' : 'Notes for counsel or trial strategy'}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-hidden"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 font-semibold focus:outline-hidden"
                 />
               </div>
 
               {/* Toggle Sync with Google Calendar */}
-              <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between">
+              <div className="p-3 bg-teal-50/60 rounded-2xl border border-teal-200 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <CalendarIcon className="w-4 h-4 text-amber-400" />
-                  <span className="text-xs font-bold text-slate-200">
+                  <CalendarIcon className="w-4 h-4 text-teal-700" />
+                  <span className="text-xs font-bold text-teal-950">
                     {isRtl ? 'مزامنة تلقائية مع Google Calendar' : 'Auto-sync to Google Calendar'}
                   </span>
                 </div>
@@ -648,7 +662,7 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
                   type="checkbox"
                   checked={syncToGoogleCheck}
                   onChange={(e) => setSyncToGoogleCheck(e.target.checked)}
-                  className="w-4 h-4 accent-indigo-600 rounded cursor-pointer"
+                  className="w-4 h-4 accent-teal-700 rounded cursor-pointer"
                 />
               </div>
 
@@ -657,14 +671,14 @@ export default function CalendarModule({ matterId, matters }: CalendarModuleProp
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl cursor-pointer"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
                 >
                   {isRtl ? 'إلغاء' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
-                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-indigo-600/30 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2.5 bg-teal-800 hover:bg-teal-900 text-white text-xs font-extrabold rounded-xl shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {creating && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   <span>{isRtl ? 'حفظ الموعد' : 'Save Event'}</span>

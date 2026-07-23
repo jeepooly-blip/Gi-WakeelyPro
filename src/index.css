@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -20,7 +20,12 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 800;
 }
 
-/* Custom scrollbars for a clean workspace interface */
+/* RTL Letter Spacing Fix for Arabic - prevents broken character gaps */
+[dir="rtl"], [dir="rtl"] *, .rtl-text {
+  letter-spacing: 0px !important;
+}
+
+/* Custom scrollbars for a clean legal workspace interface */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -29,11 +34,67 @@ h1, h2, h3, h4, h5, h6 {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #0f766e;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #115e59;
 }
 
+/* Light & Dark Theme Body Adjustments with Executive Legal Teal Palette */
+html.light body {
+  background-color: #f0fdfa !important;
+  color: #0f172a !important;
+}
 
+html.dark body {
+  background-color: #042f2e !important;
+  color: #f8fafc !important;
+}
+
+/* App Background Base Wrapper */
+.app-theme-wrapper {
+  background: linear-gradient(135deg, #f0fdfa 0%, #f8fafc 50%, #e6fffa 100%);
+  min-height: 100vh;
+}
+
+/* ------------------------------------------------------------- */
+/* PRINT MEDIA STYLES - PHYSICAL COURTROOM DOCKET & CASE SUMMARY  */
+/* ------------------------------------------------------------- */
+@page {
+  size: A4 portrait;
+  margin: 10mm 12mm;
+}
+
+@media print {
+  /* Hide all interactive screen elements by default */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Make printable courtroom docket summary visible */
+  .print-only-court-summary,
+  .print-only-court-summary * {
+    visibility: visible !important;
+  }
+
+  .print-only-court-summary {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 24px !important;
+    border: 2px solid #000000 !important;
+  }
+
+  /* Force exact color reproduction for printing stamps and borders */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

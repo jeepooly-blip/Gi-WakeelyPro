@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Landmark, Briefcase, TrendingUp, AlertTriangle, Scale, RefreshCw, Sparkles, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Landmark, Briefcase, TrendingUp, AlertTriangle, Scale, RefreshCw, Sparkles, CheckCircle2, Printer, FileText, Eye } from 'lucide-react';
 import { Matter } from '../types';
 import { useLanguage } from '../lib/LanguageContext';
 import { translateStaticText } from '../lib/i18n';
+import PrintPreviewModal from './PrintPreviewModal';
 
 interface MattersModuleProps {
   activeMatter: Matter;
@@ -22,6 +23,19 @@ export default function MattersModule({ activeMatter, onMatterUpdated }: Matters
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<RiskAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showPrintPreview, setShowPrintPreview] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleGlobalPrintPreview = () => {
+      setShowPrintPreview(true);
+    };
+    window.addEventListener('open-print-preview', handleGlobalPrintPreview);
+    return () => window.removeEventListener('open-print-preview', handleGlobalPrintPreview);
+  }, []);
+
+  const handlePrintCaseSummary = () => {
+    setShowPrintPreview(true);
+  };
 
   const handleRunAiAnalysis = async () => {
     setAnalyzing(true);
@@ -59,9 +73,10 @@ export default function MattersModule({ activeMatter, onMatterUpdated }: Matters
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col h-full gap-3 sm:gap-5" id="matters-module">
-      {/* Title & Metadata Header */}
-      <div className="flex justify-between items-start border-b border-slate-100 pb-2.5 sm:pb-4">
+    <>
+      <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col h-full gap-3 sm:gap-5 no-print" id="matters-module">
+        {/* Title & Metadata Header */}
+      <div className="flex justify-between items-start border-b border-slate-100 pb-2.5 sm:pb-4 gap-2">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
             <Scale className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
@@ -71,13 +86,27 @@ export default function MattersModule({ activeMatter, onMatterUpdated }: Matters
             <h3 className="text-base sm:text-lg font-bold text-slate-800 font-display leading-snug">{translateStaticText(activeMatter.title, isRtl)}</h3>
           </div>
         </div>
-        <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-bold uppercase rounded-xl tracking-wider ${
-          activeMatter.riskLevel === 'High' ? 'bg-red-50 text-red-600 border border-red-100' :
-          activeMatter.riskLevel === 'Medium' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
-          'bg-emerald-50 text-emerald-600 border border-emerald-100'
-        }`}>
-          {getRiskLabel(activeMatter.riskLevel)} {t.riskLevel}
-        </span>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Print Courtroom Summary Button */}
+          <button
+            type="button"
+            onClick={handlePrintCaseSummary}
+            className="px-2.5 py-1.5 bg-teal-800 hover:bg-teal-900 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer no-print shrink-0 border border-teal-700"
+            title={isRtl ? 'طباعة ملف القضية المعتمد للمحكمة' : 'Print Official Courtroom Summary'}
+          >
+            <Printer className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="hidden sm:inline">{isRtl ? 'طباعة المحكمة' : 'Print Docket'}</span>
+          </button>
+
+          <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-bold uppercase rounded-xl tracking-wider ${
+            activeMatter.riskLevel === 'High' ? 'bg-red-50 text-red-600 border border-red-100' :
+            activeMatter.riskLevel === 'Medium' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+            'bg-emerald-50 text-emerald-600 border border-emerald-100'
+          }`}>
+            {getRiskLabel(activeMatter.riskLevel)} {t.riskLevel}
+          </span>
+        </div>
       </div>
 
       {/* Description */}
@@ -205,5 +234,126 @@ export default function MattersModule({ activeMatter, onMatterUpdated }: Matters
         )}
       </div>
     </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* PHYSICAL COURTROOM RECORD - PRINTABLE DOCKET (A4 COURT LAYOUT) */}
+      {/* ------------------------------------------------------------- */}
+      <div className="hidden print:block print-only-court-summary p-8 bg-white text-slate-900 border-2 border-slate-900 rounded-none font-sans" dir={isRtl ? 'rtl' : 'ltr'}>
+        {/* Court Docket Official Header */}
+        <div className="border-b-2 border-slate-900 pb-4 mb-6 flex justify-between items-end">
+          <div>
+            <div className="text-xl font-black text-slate-900 uppercase tracking-tight">
+              {isRtl ? 'وكيلي برو للمحاماة والاستشارات القانونية' : 'WAKEELY PRO LEGAL OPERATING SYSTEM'}
+            </div>
+            <div className="text-sm font-bold text-slate-700 mt-0.5">
+              {isRtl ? 'ملخص ملف الدعوى المعتمد للمحكمة الموقرة' : 'OFFICIAL COURTROOM CASE FILE DOCKET & SUMMARY'}
+            </div>
+          </div>
+          <div className="text-right text-xs text-slate-600 font-mono">
+            <div><strong>{isRtl ? 'التاريخ:' : 'Date:'}</strong> {new Date().toLocaleDateString()}</div>
+            <div><strong>{isRtl ? 'رمز الملف:' : 'Docket ID:'}</strong> #{activeMatter.id}</div>
+          </div>
+        </div>
+
+        {/* Case Primary Metadata Table */}
+        <div className="mb-6">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 border-b border-slate-300 pb-1">
+            {isRtl ? 'أولاً: بيانات ومعلومات الدعوى الأساسية' : 'I. Primary Case Identification Data'}
+          </h4>
+          <table className="w-full text-xs text-left border border-slate-800 border-collapse">
+            <tbody>
+              <tr className="border-b border-slate-800">
+                <td className="p-2.5 font-bold bg-slate-100 border-r border-slate-800 w-1/4">{isRtl ? 'عنوان القضية' : 'Matter Title'}</td>
+                <td className="p-2.5 font-bold text-slate-900">{translateStaticText(activeMatter.title, isRtl)}</td>
+                <td className="p-2.5 font-bold bg-slate-100 border-r border-slate-800 border-l w-1/4">{isRtl ? 'اسم الموكل' : 'Client Name'}</td>
+                <td className="p-2.5 font-bold text-slate-900">{activeMatter.clientName}</td>
+              </tr>
+              <tr className="border-b border-slate-800">
+                <td className="p-2.5 font-bold bg-slate-100 border-r border-slate-800">{isRtl ? 'المحكمة المختصة' : 'Jurisdiction Court'}</td>
+                <td className="p-2.5">{translateStaticText(activeMatter.jurisdiction, isRtl)} ({activeMatter.court || 'دبي / عمان'})</td>
+                <td className="p-2.5 font-bold bg-slate-100 border-r border-slate-800 border-l">{isRtl ? 'القاضي الناظر' : 'Presiding Judge'}</td>
+                <td className="p-2.5">{translateStaticText(activeMatter.judge, isRtl)}</td>
+              </tr>
+              <tr className="border-b border-slate-800">
+                <td className="p-2.5 font-bold bg-slate-100 border-r border-slate-800">{isRtl ? 'محامي الخصم' : 'Opposing Counsel'}</td>
+                <td className="p-2.5">{(activeMatter.opposingCounsel ? translateStaticText(activeMatter.opposingCounsel, isRtl) : null) || (isRtl ? 'غير محدد' : 'N/A')}</td>
+                <td className="p-2.5 font-bold bg-slate-100 border-r border-slate-800 border-l">{isRtl ? 'القيد الزمني / التقادم' : 'Statute Deadline'}</td>
+                <td className="p-2.5 font-mono font-bold text-slate-900">{activeMatter.statuteDeadline || (isRtl ? 'مستمر' : 'Active')}</td>
+              </tr>
+              <tr>
+                <td className="p-2.5 font-bold bg-slate-100 border-r border-slate-800">{isRtl ? 'قيمة المطالبة / الميزانية' : 'Claim Value / Budget'}</td>
+                <td className="p-2.5 font-bold font-mono">{activeMatter.budget.toLocaleString()} JOD</td>
+                <td className="p-2.5 font-bold bg-slate-100 border-r border-slate-800 border-l">{isRtl ? 'مستوى المخاطرة / التوقع' : 'Risk & Win Rate'}</td>
+                <td className="p-2.5 font-bold">{getRiskLabel(activeMatter.riskLevel)} ({activeMatter.winProbability}% {isRtl ? 'نسبة النجاح' : 'Win Rate'})</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Statement of Case Facts & Summary */}
+        <div className="mb-6">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 border-b border-slate-300 pb-1">
+            {isRtl ? 'ثانياً: ملخص الوقائع ومستندات الدعوى' : 'II. Case Description & Legal Claims Summary'}
+          </h4>
+          <div className="p-4 border border-slate-800 text-xs leading-relaxed font-serif bg-slate-50/50">
+            {translateStaticText(activeMatter.description, isRtl)}
+          </div>
+        </div>
+
+        {/* AI Directives & Strategy (if available) */}
+        {analysis && (
+          <div className="mb-6">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 border-b border-slate-300 pb-1">
+              {isRtl ? 'ثالثاً: التوجيهات الاستراتيجية والتوصيات القانونية' : 'III. Certified Legal Directives & Recommendations'}
+            </h4>
+            <div className="p-3 border border-slate-800 text-xs leading-relaxed space-y-2">
+              <p><strong>{isRtl ? 'ملخص التقييم:' : 'Risk Assessment:'}</strong> {analysis.riskSummary}</p>
+              <div>
+                <strong>{isRtl ? 'التوصيات الرئيسية:' : 'Strategic Steps:'}</strong>
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  {analysis.strategyRecommendations.map((rec, i) => (
+                    <li key={i}>{rec}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Physical Courtroom Verification & Signature Block */}
+        <div className="mt-12 pt-6 border-t-2 border-slate-900 grid grid-cols-2 gap-8 text-xs">
+          <div className="text-center p-4 border border-dashed border-slate-400 rounded-lg">
+            <div className="font-bold text-slate-800 mb-8">
+              {isRtl ? 'توقيع المحامي الموكل وختم المكتب' : 'Lead Counsel Signature & Firm Seal'}
+            </div>
+            <div className="border-b border-slate-400 w-3/4 mx-auto mb-2" />
+            <div className="text-[10px] text-slate-500">{isRtl ? 'المحامي المباشر للدعوى' : 'Advocate in Charge'}</div>
+          </div>
+
+          <div className="text-center p-4 border border-dashed border-slate-400 rounded-lg">
+            <div className="font-bold text-slate-800 mb-8">
+              {isRtl ? 'تأشيرة وتوقيع قلم كتاب المحكمة المختصة' : 'Court Registrar Reception & Docket Stamp'}
+            </div>
+            <div className="border-b border-slate-400 w-3/4 mx-auto mb-2" />
+            <div className="text-[10px] text-slate-500">{isRtl ? 'سجل القضايا المعتمد' : 'Court Clerk Verification'}</div>
+          </div>
+        </div>
+
+        {/* Confidentiality Notice */}
+        <div className="mt-8 text-[9px] text-slate-500 text-center border-t border-slate-200 pt-3">
+          {isRtl
+            ? 'مستند قانوني رسمي سري مخصص للتقديم أمام الهيئات القضائية والمحاكم المختصة. جميع الحقوق محفوظة لوكيلي برو © 2026'
+            : 'Confidential courtroom docket. Privileged attorney-client communication prepared for judicial presentation. Wakeely Pro Legal OS © 2026'}
+        </div>
+      </div>
+
+      {/* Temporary Print Preview Modal Overlay */}
+      <PrintPreviewModal
+        isOpen={showPrintPreview}
+        onClose={() => setShowPrintPreview(false)}
+        activeMatter={activeMatter}
+        analysis={analysis}
+      />
+    </>
   );
 }

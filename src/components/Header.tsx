@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, User, Landmark, Plus, RefreshCw, Folder, Languages, Bell, Inbox, Check, FileCheck, Calendar, MessageSquare, Search, Sparkles, Fingerprint, Scan } from 'lucide-react';
+import { Shield, User, Landmark, Plus, RefreshCw, Folder, Languages, Bell, Inbox, Check, FileCheck, Calendar, MessageSquare, Search, Sparkles, Fingerprint, Scan, Sun, Moon, Printer } from 'lucide-react';
 import { Matter } from '../types';
 import { useLanguage } from '../lib/LanguageContext';
+import { useTheme } from '../lib/ThemeContext';
 import { translateStaticText } from '../lib/i18n';
 import MobileBottomNav from './MobileBottomNav';
 import GlobalSearchModal from './GlobalSearchModal';
@@ -28,6 +29,7 @@ export default function Header({
   onOpenBiometrics
 }: HeaderProps) {
   const { language, setLanguage, t, isRtl } = useLanguage();
+  const { theme, toggleTheme, isDark } = useTheme();
   const [showModal, setShowModal] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [title, setTitle] = useState('');
@@ -351,20 +353,20 @@ export default function Header({
       <header className="hidden lg:flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4" id="app-header">
       {/* Brand Logo & Current Matter Status */}
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-100 font-display">
+        <div className="w-12 h-12 bg-gradient-to-br from-teal-800 to-teal-950 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-teal-900/20 font-display">
           {isRtl ? 'و' : 'W'}
         </div>
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-slate-800 font-display">{t.appName}</h1>
-            <span className="px-2.5 py-0.5 text-[10px] uppercase font-bold tracking-widest bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-full">
+            <span className="px-2.5 py-0.5 text-[10px] uppercase font-bold tracking-normal bg-teal-50 text-teal-800 border border-teal-200 rounded-full">
               {t.middleEastEdition}
             </span>
           </div>
           {activeMatter ? (
-            <p className="text-sm text-slate-500 font-mono flex items-center gap-1.5 mt-0.5">
-              <Folder className="w-3.5 h-3.5 text-slate-400" />
-              {t.activeCase}: <span className="text-slate-700 font-semibold">{translateStaticText(activeMatter.title, isRtl)}</span>
+            <p className="text-sm text-slate-600 font-sans flex items-center gap-1.5 mt-0.5">
+              <Folder className="w-3.5 h-3.5 text-teal-600" />
+              {t.activeCase}: <span className="text-teal-950 font-bold">{translateStaticText(activeMatter.title, isRtl)}</span>
             </p>
           ) : (
             <p className="text-sm text-slate-400">{t.selectCase}</p>
@@ -377,12 +379,12 @@ export default function Header({
         {/* Global Legal Search Input Trigger */}
         <button
           onClick={() => setShowSearchModal(true)}
-          className="flex items-center gap-2.5 bg-white border border-slate-200 hover:border-indigo-300 text-slate-500 hover:text-slate-800 px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer group w-64 lg:w-72"
+          className="flex items-center gap-2.5 bg-white border border-slate-200 hover:border-teal-400 text-slate-500 hover:text-slate-800 px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer group w-64 lg:w-72"
           title={t.globalSearchTitle}
         >
-          <Search className="w-4 h-4 text-indigo-600 group-hover:scale-110 transition-transform shrink-0 stroke-[2.2]" />
+          <Search className="w-4 h-4 text-teal-700 group-hover:scale-110 transition-transform shrink-0 stroke-[2.2]" />
           <span className="truncate flex-grow text-left font-sans text-slate-400 group-hover:text-slate-600">{t.globalSearchPlaceholder}</span>
-          <kbd className="hidden sm:inline-block bg-slate-100 border border-slate-200 text-slate-400 px-1.5 py-0.5 rounded text-[10px] font-mono shadow-2xs font-bold shrink-0">
+          <kbd className="hidden sm:inline-block bg-teal-50 border border-teal-200 text-teal-800 px-1.5 py-0.5 rounded text-[10px] font-mono shadow-2xs font-bold shrink-0">
             ⌘K
           </kbd>
         </button>
@@ -390,20 +392,20 @@ export default function Header({
         {/* Language Switcher */}
         <button
           onClick={handleLanguageToggle}
-          className="px-3.5 py-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+          className="px-3.5 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-teal-50/50 hover:border-teal-300 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
           title="Toggle Language / تغيير اللغة"
         >
-          <Languages className="w-4 h-4 text-indigo-500" />
+          <Languages className="w-4 h-4 text-teal-700" />
           <span>{t.languageToggle}</span>
         </button>
 
         {/* Matter Dropdown selector */}
-        <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-sm">
-          <Landmark className="w-4 h-4 text-slate-500" />
+        <div className="flex items-center gap-2 bg-white border border-slate-200 hover:border-teal-300 rounded-xl px-3 py-1.5 shadow-sm">
+          <Landmark className="w-4 h-4 text-teal-700" />
           <select
             value={activeMatterId}
             onChange={(e) => onActiveMatterChange(e.target.value)}
-            className="text-sm font-semibold text-slate-700 bg-transparent focus:outline-none border-none cursor-pointer"
+            className="text-sm font-bold text-teal-950 bg-transparent focus:outline-none border-none cursor-pointer"
           >
             {matters.map(m => {
               const localizedTitle = translateStaticText(m.title, isRtl);
@@ -586,7 +588,7 @@ export default function Header({
         {currentMode === 'Lawyer' && (
           <button
             onClick={() => setShowModal(true)}
-            className="p-2 md:px-4 md:py-2 bg-indigo-600 border border-indigo-600 rounded-xl text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="p-2 md:px-4 md:py-2 bg-teal-800 hover:bg-teal-900 border border-teal-700 rounded-xl text-sm font-bold text-white shadow-md shadow-teal-900/10 flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>{t.newIntake}</span>
@@ -597,7 +599,7 @@ export default function Header({
         {onOpenBiometrics && currentMode === 'Lawyer' && (
           <button
             onClick={onOpenBiometrics}
-            className="px-2.5 py-2 bg-slate-900 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer hover:bg-slate-800 shrink-0"
+            className="px-2.5 py-2 bg-teal-950 text-teal-100 hover:bg-teal-900 border border-teal-700/80 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0"
             title={isRtl ? 'الأمان البيومتري (FaceID / بصمة)' : 'Biometric Security (FaceID / TouchID)'}
           >
             <Fingerprint className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -605,11 +607,53 @@ export default function Header({
           </button>
         )}
 
+        {/* Dedicated Case Summary Print Button */}
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('open-print-preview'))}
+          className="px-2.5 py-2 bg-teal-950 text-amber-300 hover:bg-teal-900 border border-teal-700/80 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0 no-print"
+          title={isRtl ? 'معاينة وطباعة تقرير ملخص القضية للمحكمة' : 'Preview & Print Case Summary Report for Court'}
+        >
+          <Printer className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="hidden md:inline">{isRtl ? 'طباعة القضية' : 'Print Case Summary'}</span>
+        </button>
+
+        {/* Global Dark / Light Theme Toggle Button */}
+        <button
+          onClick={toggleTheme}
+          className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+            isDark
+              ? 'bg-teal-950 text-amber-300 border-teal-700 hover:bg-teal-900'
+              : 'bg-teal-50 text-teal-950 border-teal-200 hover:bg-teal-100 shadow-xs'
+          }`}
+          title={
+            isDark
+              ? isRtl
+                ? 'التبديل إلى الوضع المضيء (نهار)'
+                : 'Switch to Light Mode'
+              : isRtl
+              ? 'التبديل إلى الوضع الليلي (داكن)'
+              : 'Switch to Dark Mode'
+          }
+        >
+          {isDark ? (
+            <>
+              <Sun className="w-4 h-4 text-amber-400" />
+              <span className="hidden sm:inline text-[11px]">{isRtl ? 'وضع نهار' : 'Light Mode'}</span>
+            </>
+          ) : (
+            <>
+              <Moon className="w-4 h-4 text-teal-800" />
+              <span className="hidden sm:inline text-[11px]">{isRtl ? 'وضع ليلي' : 'Dark Mode'}</span>
+            </>
+          )}
+        </button>
+
         {/* Landing Page Showcase Button */}
         {onShowLandingPage && (
           <button
             onClick={onShowLandingPage}
-            className="hidden sm:flex px-3 py-2 bg-slate-900 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-xl text-xs font-bold items-center gap-1.5 shadow-xs transition-all cursor-pointer hover:bg-slate-800 shrink-0"
+            className="hidden sm:flex px-3 py-2 bg-teal-950 text-teal-100 hover:bg-teal-900 border border-teal-700/80 rounded-xl text-xs font-bold items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0"
             title={isRtl ? 'الصفحة التعريفية للموقع' : 'View Landing Showcase'}
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />

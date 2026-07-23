@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Folder, FileText, UploadCloud, Eye, EyeOff, Sparkles, RefreshCw, FileCheck, Check, Plus, HelpCircle, Fingerprint, ShieldCheck } from 'lucide-react';
+import { Folder, FileText, UploadCloud, Eye, EyeOff, Sparkles, RefreshCw, FileCheck, Check, Plus, HelpCircle, Fingerprint, ShieldCheck, Scissors, Quote, Lock } from 'lucide-react';
 import { Document } from '../types';
 import { useLanguage } from '../lib/LanguageContext';
 import { translateStaticText } from '../lib/i18n';
 import { saveItemsToOfflineStore, getByMatterIdFromOfflineStore, STORES } from '../lib/offlineStorage';
 import BiometricAuthModal from './BiometricAuthModal';
+import DocumentRedactionModal from './DocumentRedactionModal';
+import DepositionIndexerModule from './DepositionIndexerModule';
+import PrivilegeLogModule from './PrivilegeLogModule';
 
 interface DocumentsModuleProps {
   matterId: string;
@@ -13,6 +16,7 @@ interface DocumentsModuleProps {
 
 export default function DocumentsModule({ matterId, onRefreshExpenses }: DocumentsModuleProps) {
   const { t, isRtl } = useLanguage();
+  const [activeTab, setActiveTab] = useState<'documents' | 'depositions' | 'privilege'>('documents');
   const [docs, setDocs] = useState<Document[]>([]);
   const [loading, setLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -23,6 +27,7 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [unlockedDocIds, setUnlockedDocIds] = useState<string[]>([]);
   const [showBiometricVerifyForDoc, setShowBiometricVerifyForDoc] = useState<Document | null>(null);
+  const [showRedactionModalForDoc, setShowRedactionModalForDoc] = useState<Document | null>(null);
 
   const fetchDocs = async () => {
     setLoading(true);
@@ -160,21 +165,97 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
     }
   };
 
+  const handleSaveRedactedDocument = async (redactedDocData: Partial<Document>) => {
+    if (!showRedactionModalForDoc) return;
+    try {
+      const res = await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matterId,
+          name: redactedDocData.name,
+          category: showRedactionModalForDoc.category,
+          fileSize: showRedactionModalForDoc.fileSize,
+          uploadedBy: "Farah Al-Sabah (Redaction Engine)",
+          visibleToClient: false,
+          isRedacted: true,
+          redactionCount: redactedDocData.redactionCount,
+          aiSummary: redactedDocData.aiSummary
+        })
+      });
+      if (res.ok) {
+        const newDoc = await res.json();
+        setDocs(prev => [...prev, newDoc]);
+        setSelectedDoc(newDoc);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 md:p-6 shadow-sm flex flex-col h-full gap-3.5 sm:gap-5" id="documents-module">
-      {/* Module Title */}
-      <div className="flex justify-between items-center border-b border-slate-100 pb-2.5 sm:pb-4">
+      
+      {/* Module Title & Discovery Sub-Tabs Bar */}
+      <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-2.5 sm:pb-4 gap-3">
         <div className="flex items-center gap-2">
-          <Folder className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-indigo-600 shrink-0" />
-          <h3 className="text-base sm:text-lg font-bold text-slate-800 font-display">{t.docManagement}</h3>
+          <Folder className="w-5 h-5 text-teal-800 shrink-0" />
+          <h3 className="text-base sm:text-lg font-extrabold text-slate-900 font-display">{t.docManagement}</h3>
         </div>
-        <span className="text-xs text-slate-400 font-mono font-bold uppercase">{docs.length} {t.filesCount}</span>
+
+        {/* Navigation Sub-Tabs */}
+        <div className="flex items-center p-1 bg-slate-100/90 rounded-2xl border border-slate-200 text-xs font-bold font-display">
+          <button
+            onClick={() => setActiveTab('documents')}
+            className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'documents'
+                ? 'bg-teal-800 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Folder className="w-3.5 h-3.5" />
+            {isRtl ? 'المستندات والقضايا' : 'Case Documents'}
+            <span className="ml-1 px-1.5 py-0.2 bg-teal-900 text-teal-100 rounded-full text-[10px] font-mono font-bold">
+              {docs.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('depositions')}
+            className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'depositions'
+                ? 'bg-teal-800 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Quote className="w-3.5 h-3.5" />
+            {isRtl ? 'فهرس استجواب الشهود' : 'Deposition Indexer'}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('privilege')}
+            className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'privilege'
+                ? 'bg-teal-800 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Lock className="w-3.5 h-3.5" />
+            {isRtl ? 'سجل الحصانة المعتمد' : 'Court Privilege Log'}
+          </button>
+        </div>
       </div>
 
-      {/* Grid: Left Column (Document List & Upload) | Right Column (File Details & AI summaries) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 flex-grow overflow-hidden">
-        {/* Left Hand: Upload & List */}
-        <div className="flex flex-col gap-4 overflow-y-auto max-h-[480px] pr-1">
+      {/* Main Tab Views */}
+      {activeTab === 'depositions' ? (
+        <DepositionIndexerModule matterId={matterId} />
+      ) : activeTab === 'privilege' ? (
+        <PrivilegeLogModule matterId={matterId} />
+      ) : (
+        /* Grid: Left Column (Document List & Upload) | Right Column (File Details & AI summaries) */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 flex-grow overflow-hidden">
+          {/* Left Hand: Upload & List */}
+          <div className="flex flex-col gap-4 overflow-y-auto max-h-[480px] pr-1">
           {/* Upload Box */}
           <form onSubmit={handleUploadSubmit} className="space-y-3">
             <div
@@ -282,10 +363,19 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
                       className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
                         unlockedDocIds.includes(doc.id)
                           ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                          : 'bg-slate-900 text-emerald-400 border-indigo-500/30 hover:bg-slate-800'
+                          : 'bg-teal-50 text-teal-800 border-teal-200 hover:bg-teal-100'
                       }`}
                     >
                       <Fingerprint className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Document Redaction Action */}
+                    <button
+                      onClick={() => setShowRedactionModalForDoc(doc)}
+                      title={isRtl ? 'طمس وتنقيح البيانات السرية' : 'Redact & Blackout Sensitive Data'}
+                      className="p-1.5 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 shadow-xs transition-all cursor-pointer"
+                    >
+                      <Scissors className="w-3.5 h-3.5" />
                     </button>
 
                     {/* AI Summarize action */}
@@ -333,7 +423,7 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
               </div>
 
               {/* Status Toggles Display */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap items-center">
                 <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-md flex items-center gap-1 border ${
                   selectedDoc.visibleToClient
                     ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
@@ -345,6 +435,13 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
                 <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-white border border-slate-200 text-slate-500 rounded-md flex items-center gap-1 font-mono">
                   {t.version} {selectedDoc.version}.0
                 </span>
+                <button
+                  onClick={() => setShowRedactionModalForDoc(selectedDoc)}
+                  className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 rounded-md flex items-center gap-1 transition-colors cursor-pointer ms-auto"
+                >
+                  <Scissors className="w-3 h-3" />
+                  {isRtl ? 'طمس وتنقيح سرّي' : 'Redact Canvas'}
+                </button>
               </div>
 
               {/* AI Clause analysis & Summarization body */}
@@ -402,6 +499,7 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
           )}
         </div>
       </div>
+      )}
 
       {/* Biometric Verification Modal for Document Access */}
       {showBiometricVerifyForDoc && (
@@ -417,6 +515,16 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
             }
             setSelectedDoc(showBiometricVerifyForDoc);
           }}
+        />
+      )}
+
+      {/* Interactive Document Redaction Modal */}
+      {showRedactionModalForDoc && (
+        <DocumentRedactionModal
+          isOpen={true}
+          document={showRedactionModalForDoc}
+          onClose={() => setShowRedactionModalForDoc(null)}
+          onSaveRedactedDocument={handleSaveRedactedDocument}
         />
       )}
     </div>

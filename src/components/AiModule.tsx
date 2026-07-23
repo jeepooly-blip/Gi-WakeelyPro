@@ -162,10 +162,12 @@ export default function AiModule({ activeMatter }: AiModuleProps) {
 
   // Localized template options
   const templateOptions = [
-    { name: t.demandNotice, value: 'Formal Demand Notice' },
-    { name: t.settlementAccord, value: 'Settlement Accord' },
-    { name: t.arbitrationPetition, value: 'SCCA Arbitration Petition' },
-    { name: t.statementDefense, value: 'Statement of Defense Pleading' }
+    { name: isRtl ? 'لائحة ادعاء أصلية (Statement of Claim)' : 'Statement of Claim Pleading', value: 'Statement of Claim Pleading' },
+    { name: isRtl ? 'مذكرة دفاع جوابية (Statement of Defense)' : 'Statement of Defense Pleading', value: 'Statement of Defense Pleading' },
+    { name: isRtl ? 'لائحة استئناف/طعن (Appellate Brief)' : 'Appellate Brief / Appeal Notice', value: 'Appellate Brief / Appeal Notice' },
+    { name: isRtl ? 'طلب فصل ناجز (Summary Judgment)' : 'Motion for Summary Judgment', value: 'Motion for Summary Judgment' },
+    { name: isRtl ? 'عريضة تحكيم (SCCA Petition)' : 'SCCA Arbitration Petition', value: 'SCCA Arbitration Petition' },
+    { name: isRtl ? 'إنذار عدلي رسمي (Demand Notice)' : 'Formal Demand Notice', value: 'Formal Demand Notice' }
   ];
 
   return (

@@ -3,7 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
-import { Matter, Document, Task, TimeEntry, Invoice, ClientMessage, TimelineEvent, CalendarEvent } from "./src/types.js";
+import { Matter, Document, Task, TimeEntry, Invoice, ClientMessage, TimelineEvent, CalendarEvent, DepositionTranscript, PrivilegeLogEntry, CourtRuleDeadline } from "./src/types.js";
 
 dotenv.config();
 
@@ -141,7 +141,8 @@ let tasks: Task[] = [
     dueDate: "2026-07-25",
     status: "In Progress",
     priority: "High",
-    visibleToClient: true
+    visibleToClient: true,
+    dependsOnTaskIds: []
   },
   {
     id: "t2",
@@ -152,7 +153,8 @@ let tasks: Task[] = [
     dueDate: "2026-07-28",
     status: "To Do",
     priority: "High",
-    visibleToClient: false
+    visibleToClient: false,
+    dependsOnTaskIds: ["t1"]
   },
   {
     id: "t3",
@@ -163,7 +165,8 @@ let tasks: Task[] = [
     dueDate: "2026-08-01",
     status: "Completed",
     priority: "Medium",
-    visibleToClient: true
+    visibleToClient: true,
+    dependsOnTaskIds: ["t2"]
   },
   {
     id: "t4",
@@ -174,7 +177,8 @@ let tasks: Task[] = [
     dueDate: "2026-07-27",
     status: "Under Review",
     priority: "Medium",
-    visibleToClient: false
+    visibleToClient: false,
+    dependsOnTaskIds: []
   }
 ];
 
@@ -349,6 +353,94 @@ let calendarEvents: CalendarEvent[] = [
   }
 ];
 
+let transcripts: DepositionTranscript[] = [
+  {
+    id: "dt1",
+    matterId: "m1",
+    witnessName: "Capt. Rashid Al-Nuaimi",
+    witnessRole: "Chief Operations Officer, Global Port Authority",
+    depositionDate: "2026-07-12",
+    deponentParty: "Adverse Party",
+    pagesCount: 3,
+    uploadedAt: "2026-07-14T11:00:00Z",
+    keyAdmissionsSummary: "Witness admitted GPA experienced unannounced gate maintenance on July 4, causing a 14-hour queue of Al-Tayer container trucks with no prior force majeure notice.",
+    pages: [
+      {
+        pageNumber: 1,
+        lineNumber: "10-24",
+        timestamp: "09:30 AM",
+        speaker: "Q (Farah Al-Sabah) / A (Capt. Rashid)",
+        text: "Q: Captain Al-Nuaimi, state your full role at GPA during July 2026.\nA: I am the Chief Operating Officer overseeing all container logistics in Jebel Ali Zone 2.\nQ: Were you on duty when Gate 4 was closed on July 4th?\nA: Yes, I received the automated telemetry warning at 06:15 AM.",
+        isKeyAdmission: false,
+        tags: ["Role Confirmation", "Gate Telemetry"]
+      },
+      {
+        pageNumber: 2,
+        lineNumber: "02-18",
+        timestamp: "09:50 AM",
+        speaker: "Q (Farah Al-Sabah) / A (Capt. Rashid)",
+        text: "Q: Did GPA issue a prior force majeure notification to Al-Tayer Logistics before shutting Gate 4?\nA: No written notice was sent prior to 2:00 PM that afternoon.\nQ: So for 8 hours, Al-Tayer's reefer trucks were detained without formal notice?\nA: Correct. We were attempting emergency hydraulic repairs.",
+        isKeyAdmission: true,
+        tags: ["Key Admission", "No Notice", "Force Majeure Contradiction"]
+      },
+      {
+        pageNumber: 3,
+        lineNumber: "05-22",
+        timestamp: "10:15 AM",
+        speaker: "Q (Farah Al-Sabah) / A (Capt. Rashid)",
+        text: "Q: What was the total spoilage value logged in the port incident ledger?\nA: The internal report logged approximately 120,000 JOD in delayed perishable cargo impact.",
+        isKeyAdmission: true,
+        tags: ["Spoilage Damage", "Quantum of Loss"]
+      }
+    ]
+  }
+];
+
+let privilegeLogEntries: PrivilegeLogEntry[] = [
+  {
+    id: "pl1",
+    matterId: "m1",
+    docControlNum: "PRIV-M1-001",
+    docDate: "2026-06-20",
+    author: "Farah Al-Sabah (Senior Associate)",
+    recipients: "Tariq Al-Tayer (Client CEO), Walid Al-Gharaballi (Partner)",
+    docType: "Legal Opinion Memo",
+    subject: "Analysis of JAFZ Arbitral Precedents on Port Gate Closures and Force Majeure Defenses",
+    privilegeClaimed: "Attorney-Client Privilege",
+    justification: "Confidential legal advice rendered by counsel to client regarding litigation exposure and trial defense strategy.",
+    isRedacted: true,
+    reviewStatus: "Verified"
+  },
+  {
+    id: "pl2",
+    matterId: "m1",
+    docControlNum: "PRIV-M1-002",
+    docDate: "2026-07-01",
+    author: "Walid Al-Gharaballi (Partner)",
+    recipients: "Farah Al-Sabah (Senior Associate)",
+    docType: "Work-Product Draft",
+    subject: "Internal Trial Strategy Notes & Witness Cross-Examination Outline for Capt. Rashid",
+    privilegeClaimed: "Work-Product Doctrine",
+    justification: "Attorney mental impressions, trial strategy notes, and legal theories prepared in anticipation of commercial litigation.",
+    isRedacted: true,
+    reviewStatus: "Verified"
+  },
+  {
+    id: "pl3",
+    matterId: "m1",
+    docControlNum: "PRIV-M1-003",
+    docDate: "2026-07-08",
+    author: "Financial Expert (Deloitte Middle East)",
+    recipients: "Farah Al-Sabah (Senior Associate)",
+    docType: "Preliminary Expert Analysis",
+    subject: "Draft Quantum Loss Calculation & Damages Audit Model",
+    privilegeClaimed: "Work-Product Doctrine",
+    justification: "Draft expert report and mental impression evaluations commissioned by legal counsel specifically for arbitration preparation.",
+    isRedacted: false,
+    reviewStatus: "Flagged"
+  }
+];
+
 async function syncToGoogleCalendarApi(event: CalendarEvent): Promise<{ success: boolean; googleEventId?: string; error?: string }> {
   const token = process.env.GOOGLE_ACCESS_TOKEN;
   if (!token) {
@@ -472,6 +564,10 @@ app.put("/api/documents/:id", (req, res) => {
 });
 
 // Tasks
+app.get("/api/tasks/all", (req, res) => {
+  res.json(tasks);
+});
+
 app.get("/api/matters/:matterId/tasks", (req, res) => {
   res.json(tasks.filter(t => t.matterId === req.params.matterId));
 });
@@ -486,7 +582,8 @@ app.post("/api/tasks", (req, res) => {
     dueDate: req.body.dueDate || new Date().toISOString().split('T')[0],
     status: req.body.status || "To Do",
     priority: req.body.priority || "Medium",
-    visibleToClient: req.body.visibleToClient || false
+    visibleToClient: req.body.visibleToClient || false,
+    dependsOnTaskIds: Array.isArray(req.body.dependsOnTaskIds) ? req.body.dependsOnTaskIds : []
   };
   tasks.push(newTask);
   res.status(201).json(newTask);
@@ -665,6 +762,320 @@ app.post("/api/calendar/sync-google", async (req, res) => {
 app.delete("/api/calendar/events/:id", (req, res) => {
   calendarEvents = calendarEvents.filter(c => c.id !== req.params.id);
   res.json({ success: true });
+});
+
+// Deposition Transcripts API Endpoints
+app.get("/api/matters/:matterId/transcripts", (req, res) => {
+  res.json(transcripts.filter(t => t.matterId === req.params.matterId));
+});
+
+app.post("/api/transcripts", (req, res) => {
+  const newTranscript: DepositionTranscript = {
+    id: `dt${Date.now()}`,
+    matterId: req.body.matterId,
+    witnessName: req.body.witnessName || "Deponent Witness",
+    witnessRole: req.body.witnessRole || "Fact Witness",
+    depositionDate: req.body.depositionDate || new Date().toISOString().split('T')[0],
+    deponentParty: req.body.deponentParty || "Adverse Party",
+    pagesCount: req.body.pages ? req.body.pages.length : 1,
+    uploadedAt: new Date().toISOString(),
+    keyAdmissionsSummary: req.body.keyAdmissionsSummary || "Pending AI Extraction...",
+    pages: req.body.pages || []
+  };
+  transcripts.push(newTranscript);
+  res.status(201).json(newTranscript);
+});
+
+// AI Search & Key Admissions Extractor for Transcripts
+app.post("/api/ai/transcript-search", async (req, res) => {
+  const { matterId, transcriptId, query, lang } = req.body;
+  const tr = transcripts.find(t => t.id === transcriptId || (t.matterId === matterId && t.pages.length > 0));
+  const ai = getGeminiClient();
+
+  if (!ai) {
+    return res.status(503).json({ error: "Gemini API key is not configured." });
+  }
+
+  try {
+    const transcriptText = tr ? tr.pages.map(p => `[Page ${p.pageNumber}, Lines ${p.lineNumber || '1-25'}, Speaker: ${p.speaker}]\n${p.text}`).join("\n\n") : "No transcript available";
+    const language = lang === 'ar' ? 'Arabic' : 'English';
+
+    const prompt = `You are a trial litigation copilot indexing a deposition transcript for trial presentation.
+Witness: ${tr ? tr.witnessName : "Deponent"} (${tr ? tr.witnessRole : "Witness"})
+Search Query / Legal Objective: "${query || "Find key admissions, contradictions, and critical testimony"}"
+
+Deposition Transcript Text:
+${transcriptText}
+
+Task:
+1. Search the transcript text to identify exact page numbers, line numbers, and quotes matching or answering the query.
+2. Identify any key admissions against interest or contradictions.
+3. Formulate cross-examination follow-up questions for trial.
+
+Structure your response strictly as JSON with properties:
+- matches: array of objects { pageNumber: number, lineNumber: string, quote: string, relevanceExplanation: string, isAdmission: boolean }
+- keyAdmissionsSummary: string
+- suggestedCrossExamQuestions: array of strings
+
+Language for explanations: ${language}.
+Do not wrap with Markdown.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    const parsed = JSON.parse(response.text.trim());
+    res.json(parsed);
+  } catch (err: any) {
+    console.error("Transcript AI Search failed:", err);
+    res.status(500).json({ error: err.message || "Failed to process transcript search" });
+  }
+});
+
+// AI Endpoint: Automated Court Rules Calendaring Calculation
+app.post("/api/ai/calculate-court-deadlines", async (req, res) => {
+  const { matterId, jurisdictionRuleset, triggeringEvent, triggerDate, lang } = req.body;
+  const matter = matters.find(m => m.id === matterId);
+  const ai = getGeminiClient();
+
+  if (!ai) {
+    return res.status(503).json({ error: "Gemini API key is not configured." });
+  }
+
+  try {
+    const language = lang === 'ar' ? 'Arabic' : 'English';
+    const prompt = `You are an expert judicial clerk and court rules calendaring master specialized in statutory procedural deadlines.
+Case / Matter Title: ${matter ? matter.title : 'Litigation Matter'}
+Jurisdiction Ruleset: ${jurisdictionRuleset || 'UAE Civil Procedure Law (Federal Law No. 42)'}
+Triggering Event: ${triggeringEvent || 'Service of Statement of Claim'}
+Trigger Date: ${triggerDate || new Date().toISOString().split('T')[0]}
+
+Task:
+Calculate all statutory procedural deadlines, discovery cutoffs, appeal windows, and filing milestones resulting from this triggering event under the specified court rules.
+Note: Take into account court rules for counting days (business days vs calendar days) and standard weekend/holiday exclusions.
+
+Provide 4 to 6 key procedural deadlines in sequential order.
+Structure your response strictly as JSON with properties:
+- calculatedDeadlines: array of objects { title: string, category: "Hearing" | "Court Deadline" | "Filing" | "Arbitration", daysFromTrigger: number, calculatedDate: string (YYYY-MM-DD), ruleReference: string, description: string, priority: "High" | "Medium" | "Low", autoAddTasks: boolean }
+- proceduralAdvice: string (explaining court rules calculation rationale)
+- applicableCodeRef: string
+
+Language for descriptions: ${language}. Do not wrap with Markdown.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    const parsed = JSON.parse(response.text.trim());
+    res.json(parsed);
+  } catch (err: any) {
+    console.error("Court Rules Calendaring AI failed:", err);
+    res.status(500).json({ error: err.message || "Failed to calculate court deadlines" });
+  }
+});
+
+// Bulk Post Calculated Court Deadlines into Calendar & Tasks
+app.post("/api/calendar/bulk-deadlines", (req, res) => {
+  const { matterId, deadlines } = req.body;
+  if (!matterId || !Array.isArray(deadlines)) {
+    return res.status(400).json({ error: "Invalid payload for bulk deadlines" });
+  }
+
+  const createdEvents: CalendarEvent[] = [];
+  deadlines.forEach((d: CourtRuleDeadline) => {
+    const newEv: CalendarEvent = {
+      id: `ce${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      matterId,
+      title: d.title,
+      description: `${d.description} (Ref: ${d.ruleReference})`,
+      startDate: d.calculatedDate,
+      time: "09:00 AM",
+      location: "Court Docket / Electronic Filing Portal",
+      category: d.category || "Court Deadline",
+      syncedToGoogleCalendar: false
+    };
+    calendarEvents.push(newEv);
+    createdEvents.push(newEv);
+
+    // Also add to tasks if high/medium priority
+    if (d.autoAddTasks !== false) {
+      const newTask: Task = {
+        id: `t${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        matterId,
+        title: `[Statutory Deadline] ${d.title}`,
+        description: `Rule Reference: ${d.ruleReference}. ${d.description}`,
+        assignedTo: "Lead Litigation Counsel",
+        dueDate: d.calculatedDate,
+        priority: d.priority || "High",
+        visibleToClient: true,
+        status: "To Do"
+      };
+      tasks.push(newTask);
+    }
+  });
+
+  res.status(201).json({ success: true, count: createdEvents.length, events: createdEvents });
+});
+
+// AI Endpoint: UTBMS / LEDES Time Entry Auto-Classifier
+app.post("/api/ai/ledes-classify", async (req, res) => {
+  const { description, lang } = req.body;
+  const ai = getGeminiClient();
+
+  if (!ai) {
+    return res.status(503).json({ error: "Gemini API key is not configured." });
+  }
+
+  try {
+    const prompt = `You are a legal billing compliance officer standardizing time entries for UTBMS / LEDES 1998B e-billing format.
+Time Entry Description: "${description}"
+
+Task:
+Identify the exact UTBMS LEDES Litigation Task Code and Activity Code:
+UTBMS Task Codes examples:
+- L110: Fact Investigation / Development
+- L120: Analysis / Strategy
+- L210: Pleadings
+- L220: Preliminary Motions
+- L310: Written Discovery
+- L330: Depositions
+- L410: Trial Preparation
+- L420: Trial Attendance
+- A102: Legal Research
+
+UTBMS Activity Codes examples:
+- A101: Plan and prepare for
+- A102: Research
+- A103: Draft/revise
+- A104: Review/analyze
+- A105: Communicate (in-firm or outside)
+- A106: Appear/attend
+
+Structure your response strictly as JSON with properties:
+- taskCode: string (e.g. "L210")
+- taskName: string
+- activityCode: string (e.g. "A103")
+- activityName: string
+- standardizedDescription: string (polished professional description)
+
+Language for descriptions: ${lang === 'ar' ? 'Arabic' : 'English'}. Do not wrap with Markdown.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    const parsed = JSON.parse(response.text.trim());
+    res.json(parsed);
+  } catch (err: any) {
+    console.error("LEDES AI Classification failed:", err);
+    res.status(500).json({ error: err.message || "Failed to classify time entry" });
+  }
+});
+
+// Privilege Log endpoints
+app.get("/api/matters/:matterId/privilege-log", (req, res) => {
+  res.json(privilegeLogEntries.filter(p => p.matterId === req.params.matterId));
+});
+
+app.post("/api/privilege-log", (req, res) => {
+  const newEntry: PrivilegeLogEntry = {
+    id: `pl${Date.now()}`,
+    matterId: req.body.matterId,
+    docControlNum: req.body.docControlNum || `PRIV-M-${Math.floor(Math.random() * 900 + 100)}`,
+    docDate: req.body.docDate || new Date().toISOString().split('T')[0],
+    author: req.body.author || "Legal Counsel",
+    recipients: req.body.recipients || "Client Executive",
+    docType: req.body.docType || "Confidential Memo",
+    subject: req.body.subject || "Legal strategy analysis",
+    privilegeClaimed: req.body.privilegeClaimed || "Attorney-Client Privilege",
+    justification: req.body.justification || "Confidential communication for legal advice.",
+    isRedacted: req.body.isRedacted ?? true,
+    reviewStatus: req.body.reviewStatus || "Verified"
+  };
+  privilegeLogEntries.push(newEntry);
+  res.status(201).json(newEntry);
+});
+
+app.put("/api/privilege-log/:id", (req, res) => {
+  const index = privilegeLogEntries.findIndex(p => p.id === req.params.id);
+  if (index !== -1) {
+    privilegeLogEntries[index] = { ...privilegeLogEntries[index], ...req.body };
+    res.json(privilegeLogEntries[index]);
+  } else {
+    res.status(404).json({ error: "Privilege log entry not found" });
+  }
+});
+
+app.delete("/api/privilege-log/:id", (req, res) => {
+  privilegeLogEntries = privilegeLogEntries.filter(p => p.id !== req.params.id);
+  res.json({ success: true });
+});
+
+// AI Privilege Recommendation Analysis
+app.post("/api/ai/privilege-analysis", async (req, res) => {
+  const { matterId, docName, author, recipients, subject, docType, lang } = req.body;
+  const matter = matters.find(m => m.id === matterId);
+  const ai = getGeminiClient();
+
+  if (!ai) {
+    return res.status(503).json({ error: "Gemini API key is not configured." });
+  }
+
+  try {
+    const language = lang === 'ar' ? 'Arabic' : 'English';
+    const prompt = `You are a judicial master evaluating discovery claims for court privilege log compliance.
+Document Metadata:
+- Document Name: ${docName}
+- Document Type: ${docType || 'Email / Memo'}
+- Author / Sender: ${author}
+- Recipient(s): ${recipients}
+- Subject Matter: ${subject}
+- Case Context: ${matter ? matter.title : 'Commercial Litigation'}
+
+Task:
+1. Determine the exact legal privilege doctrine applicable:
+   - "Attorney-Client Privilege" (legal advice between counsel & client)
+   - "Work-Product Doctrine" (trial prep materials prepared by or for counsel)
+   - "Common Interest Privilege" (joint defense communication)
+   - "Bank Confidentiality" (statutory banking secrecy)
+   - "Sharia Professional Secrecy" (confidential advocate duty under local bar rules)
+2. Draft a legally sound, court-compliant justification narrative explaining why the document is withheld or redacted without revealing privileged contents.
+3. Recommend whether to "Withhold Entirely" or "Produce with Redactions".
+
+Structure your response strictly as JSON with properties:
+- recommendedPrivilege: string
+- justificationRationale: string
+- productionRecommendation: string
+- confidenceScore: number
+
+Language for justification: ${language}. Do not wrap with Markdown.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    const parsed = JSON.parse(response.text.trim());
+    res.json(parsed);
+  } catch (err: any) {
+    console.error("Privilege AI Analysis failed:", err);
+    res.status(500).json({ error: err.message || "Failed to analyze privilege claim" });
+  }
 });
 
 
