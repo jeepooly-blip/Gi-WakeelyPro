@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sword, BookOpen, Users, FileCheck, Sparkles, Plus, CheckCircle2, AlertCircle, Search, Filter, Shield, ChevronRight, HelpCircle, Layers, ArrowUpRight, Hash, Bookmark } from 'lucide-react';
+import { Sword, BookOpen, Users, FileCheck, Sparkles, Plus, CheckCircle2, AlertCircle, Search, Filter, Shield, ChevronRight, HelpCircle, Layers, ArrowUpRight, Hash, Bookmark, Calendar } from 'lucide-react';
 import { Matter } from '../types';
 import { useLanguage } from '../lib/LanguageContext';
 import { translateStaticText } from '../lib/i18n';
@@ -28,9 +28,113 @@ interface ExhibitEntry {
   relevanceNote: string;
 }
 
+interface TimelineEvent {
+  id: string;
+  date: string;
+  title: string;
+  titleAr: string;
+  category: 'Filing' | 'Evidence' | 'Hearing' | 'Discovery' | 'Milestone';
+  status: 'Completed' | 'Pending' | 'Upcoming';
+  summary: string;
+  summaryAr: string;
+  linkedRef?: string;
+}
+
 export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
   const { t, isRtl } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'witnesses' | 'exhibits' | 'chronology' | 'ai-counter'>('witnesses');
+  const [activeTab, setActiveTab] = useState<'witnesses' | 'exhibits' | 'chronology' | 'ai-counter'>('chronology');
+
+  // Interactive Timeline Events State
+  const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([
+    {
+      id: 't1',
+      date: '2025-01-10',
+      title: 'Original Statement of Claim Filed',
+      titleAr: 'قيد لائحة الدعوى الأصلية أمام المحكمة التجارية',
+      category: 'Filing',
+      status: 'Completed',
+      summary: 'Filed initial claim seeking 4.2M JOD in breach of contract and liquidated damages.',
+      summaryAr: 'تم تسجيل المذكرة الأولى للمطالبة بمبلغ 4.2 مليون دينار أردني بناءً على إخلال بالعقد.',
+      linkedRef: 'EX-P-01'
+    },
+    {
+      id: 't2',
+      date: '2025-02-14',
+      title: 'Opposing Defense & Counterclaim Submitted',
+      titleAr: 'إيداع مذكرة الدفاع والطلب العارض من الخصم',
+      category: 'Filing',
+      status: 'Completed',
+      summary: 'Defendant filed 45-page statement alleging force majeure and unexcused project delays.',
+      summaryAr: 'أودع الخصم لائحة دفاع من 45 صفحة محتجاً بالقوة القاهرة وتأخر التنفيذ.',
+      linkedRef: 'EX-D-03'
+    },
+    {
+      id: 't3',
+      date: '2025-03-20',
+      title: 'Expert Engineering Inspection Report',
+      titleAr: 'إيداع تقرير الخبرة الهندسية الفنية',
+      category: 'Evidence',
+      status: 'Completed',
+      summary: 'Court-appointed expert panel delivered 110-page structural concrete assessment.',
+      summaryAr: 'أودعت لجنة الخبراء المعينة تقرير الفحص الفني للخرسانة المكون من 110 صفحة.',
+      linkedRef: 'EX-P-08'
+    },
+    {
+      id: 't4',
+      date: '2025-05-18',
+      title: 'Oral Cross-Examination Hearing',
+      titleAr: 'جلسة استجواب الخبراء والشهود شفاهاً',
+      category: 'Hearing',
+      status: 'Pending',
+      summary: 'Cross-examination of Dr. Tariq Al-Mansoor & Mr. Walid Al-Rashid scheduled before tribunal.',
+      summaryAr: 'جلسة مناقشة الخبراء والشهود أمام هيئة المحكمة.',
+      linkedRef: 'w1'
+    },
+    {
+      id: 't5',
+      date: '2025-06-30',
+      title: 'Closing Submissions & Final Judgment Award',
+      titleAr: 'إيداع المذكرات الختامية وصدور الحكم الابتدائى',
+      category: 'Milestone',
+      status: 'Upcoming',
+      summary: 'Final statutory deadline for post-hearing briefs and tribunal deliberation.',
+      summaryAr: 'الموعد النهائي لإيداع المرافعات الختامية وحجز الدعوى للحكم.'
+    }
+  ]);
+
+  const [selectedEventId, setSelectedEventId] = useState<string>('t3');
+  const [timelineCategoryFilter, setTimelineCategoryFilter] = useState<string>('All');
+
+  // Add Event Form Modal
+  const [showAddEvent, setShowAddEvent] = useState(false);
+  const [newEventTitle, setNewEventTitle] = useState('');
+  const [newEventDate, setNewEventDate] = useState('');
+  const [newEventCategory, setNewEventCategory] = useState<'Filing' | 'Evidence' | 'Hearing' | 'Discovery' | 'Milestone'>('Filing');
+  const [newEventSummary, setNewEventSummary] = useState('');
+
+  const handleAddEvent = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEventTitle.trim() || !newEventDate) return;
+
+    const newEv: TimelineEvent = {
+      id: `t_${Date.now()}`,
+      date: newEventDate,
+      title: newEventTitle,
+      titleAr: newEventTitle,
+      category: newEventCategory,
+      status: 'Pending',
+      summary: newEventSummary || 'Registered timeline milestone.',
+      summaryAr: newEventSummary || 'حدث مضاف المخطط الزمني.'
+    };
+
+    setTimelineEvents(prev => [...prev, newEv].sort((a, b) => a.date.localeCompare(b.date)));
+    setNewEventTitle('');
+    setNewEventDate('');
+    setNewEventSummary('');
+    setShowAddEvent(false);
+  };
+
+  const selectedEvent = timelineEvents.find(e => e.id === selectedEventId) || timelineEvents[0];
 
   // Sample Witnesses Data
   const [witnesses, setWitnesses] = useState<WitnessEntry[]>([
@@ -176,7 +280,16 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold font-display">
+        <div className="flex flex-wrap items-center p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold font-display gap-1">
+          <button
+            onClick={() => setActiveTab('chronology')}
+            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'chronology' ? 'bg-white text-rose-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>{isRtl ? 'المخطط الزمني الشامل' : 'Trial Chronology'}</span>
+          </button>
           <button
             onClick={() => setActiveTab('witnesses')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
@@ -206,6 +319,217 @@ export default function WarRoomModule({ activeMatter }: WarRoomModuleProps) {
           </button>
         </div>
       </div>
+
+      {/* TAB 0: VISUAL INTERACTIVE TRIAL CHRONOLOGY & TIMELINE */}
+      {activeTab === 'chronology' && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Controls Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 border border-slate-200 p-3 rounded-2xl">
+            {/* Category Filters */}
+            <div className="flex items-center gap-1.5 overflow-x-auto text-[11px] font-bold">
+              <span className="text-slate-400 font-sans mr-1 rtl:ml-1 shrink-0">{isRtl ? 'تصفية حسب:' : 'Filter:'}</span>
+              {['All', 'Filing', 'Evidence', 'Hearing', 'Milestone'].map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setTimelineCategoryFilter(cat)}
+                  className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                    timelineCategoryFilter === cat
+                      ? 'bg-rose-600 text-white shadow-2xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  {cat === 'All' ? (isRtl ? 'الكل' : 'All') : cat}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setShowAddEvent(true)}
+              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1 shrink-0"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{isRtl ? 'إضافة محطة زمنية' : 'Add Event'}</span>
+            </button>
+          </div>
+
+          {/* Add Timeline Event Form */}
+          {showAddEvent && (
+            <form onSubmit={handleAddEvent} className="bg-slate-900 text-white border border-slate-800 rounded-2xl p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+              <h4 className="text-xs font-bold font-display uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+                <Calendar className="w-4 h-4" />
+                <span>{isRtl ? 'إضافة محطة جديدة إلى التسلسل الزمني للنزاع' : 'Register New Case Milestone Event'}</span>
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">{isRtl ? 'عنوان الحدث / المذكرة:' : 'Event Title:'}</label>
+                  <input
+                    type="text"
+                    value={newEventTitle}
+                    onChange={e => setNewEventTitle(e.target.value)}
+                    placeholder="e.g. Submissions of Rebuttal Expert Brief"
+                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">{isRtl ? 'التاريخ:' : 'Event Date:'}</label>
+                  <input
+                    type="date"
+                    value={newEventDate}
+                    onChange={e => setNewEventDate(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">{isRtl ? 'نوع المحطة:' : 'Category:'}</label>
+                  <select
+                    value={newEventCategory}
+                    onChange={e => setNewEventCategory(e.target.value as any)}
+                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  >
+                    <option value="Filing">Court Filing (إيداع قضائي)</option>
+                    <option value="Evidence">Evidence Production (تقديم أدلة)</option>
+                    <option value="Hearing">Hearing / Deposition (جلسة محاكمة)</option>
+                    <option value="Discovery">Discovery Phase (تبادل مستندات)</option>
+                    <option value="Milestone">Case Milestone (حدث جوهري)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">{isRtl ? 'الوصف / الأهمية القانونية:' : 'Summary / Legal Impact:'}</label>
+                  <input
+                    type="text"
+                    value={newEventSummary}
+                    onChange={e => setNewEventSummary(e.target.value)}
+                    placeholder="Brief description of significance..."
+                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAddEvent(false)}
+                  className="px-3 py-1.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-700"
+                >
+                  {isRtl ? 'إلغاء' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+                >
+                  {isRtl ? 'حفظ الحدث' : 'Save Event'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Interactive Timeline Axis */}
+          <div className="bg-slate-900 text-white rounded-2xl p-4 sm:p-5 border border-slate-800 space-y-4">
+            <div className="flex justify-between items-center text-xs border-b border-slate-800 pb-3">
+              <span className="font-bold font-display text-slate-300 flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-rose-400" />
+                <span>{isRtl ? 'المخطط الزمني لمجريات المحاكمة (Interactive Bird\'s-Eye Timeline)' : 'Interactive Bird\'s-Eye Case Timeline'}</span>
+              </span>
+              <span className="text-[11px] text-slate-400 font-mono">
+                {timelineEvents.length} {isRtl ? 'محطات معتمدة' : 'Milestones'}
+              </span>
+            </div>
+
+            {/* Horizontal Scrollable Nodes Flow */}
+            <div className="relative py-6 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700">
+              {/* Central Connecting Line */}
+              <div className="absolute top-1/2 left-4 right-4 -translate-y-1/2 h-1 bg-slate-800 z-0" />
+
+              <div className="flex items-center justify-between gap-6 min-w-[600px] px-4 relative z-10">
+                {timelineEvents
+                  .filter(ev => timelineCategoryFilter === 'All' || ev.category === timelineCategoryFilter)
+                  .map((ev, idx) => {
+                    const isSelected = ev.id === selectedEventId;
+                    return (
+                      <div
+                        key={ev.id}
+                        onClick={() => setSelectedEventId(ev.id)}
+                        className={`group flex flex-col items-center cursor-pointer transition-all duration-200 shrink-0 ${
+                          isSelected ? 'scale-110' : 'hover:scale-105 opacity-80 hover:opacity-100'
+                        }`}
+                      >
+                        {/* Event Date Tag Above */}
+                        <span className={`text-[10px] font-mono font-bold mb-2 px-2 py-0.5 rounded-md transition-colors ${
+                          isSelected ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-400'
+                        }`}>
+                          {ev.date}
+                        </span>
+
+                        {/* Interactive Node Icon */}
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md ${
+                          isSelected
+                            ? 'bg-rose-600 text-white ring-4 ring-rose-500/30'
+                            : ev.status === 'Completed'
+                            ? 'bg-emerald-600 text-white'
+                            : ev.status === 'Pending'
+                            ? 'bg-amber-500 text-white ring-2 ring-amber-400/40 animate-pulse'
+                            : 'bg-slate-800 border border-slate-700 text-slate-400'
+                        }`}>
+                          {ev.category === 'Filing' && <FileCheck className="w-4 h-4" />}
+                          {ev.category === 'Evidence' && <BookOpen className="w-4 h-4" />}
+                          {ev.category === 'Hearing' && <Users className="w-4 h-4" />}
+                          {ev.category === 'Milestone' && <Sparkles className="w-4 h-4" />}
+                          {ev.category === 'Discovery' && <Search className="w-4 h-4" />}
+                        </div>
+
+                        {/* Event Title Below */}
+                        <span className={`text-[11px] font-bold mt-2 max-w-[120px] text-center line-clamp-1 transition-colors ${
+                          isSelected ? 'text-white' : 'text-slate-400'
+                        }`}>
+                          {isRtl ? ev.titleAr : ev.title}
+                        </span>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+
+          {/* Selected Event Detail Inspection Card */}
+          {selectedEvent && (
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-3 animate-in fade-in duration-200">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                    selectedEvent.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {selectedEvent.status}
+                  </span>
+                  <span className="px-2.5 py-1 bg-slate-200 text-slate-800 font-mono text-xs font-bold rounded-lg">
+                    {selectedEvent.date}
+                  </span>
+                  <span className="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold rounded-lg">
+                    {selectedEvent.category}
+                  </span>
+                </div>
+                {selectedEvent.linkedRef && (
+                  <span className="text-xs font-mono font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                    <Bookmark className="w-3.5 h-3.5" />
+                    <span>{isRtl ? 'مرتبط بالمستند:' : 'Linked Ref:'} {selectedEvent.linkedRef}</span>
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <h4 className="text-base font-bold text-slate-900 font-display">
+                  {isRtl ? selectedEvent.titleAr : selectedEvent.title}
+                </h4>
+                <p className="text-xs text-slate-600 mt-1.5 leading-relaxed bg-white border border-slate-200/80 rounded-xl p-3">
+                  {isRtl ? selectedEvent.summaryAr : selectedEvent.summary}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* TAB 1: WITNESS BINDER */}
       {activeTab === 'witnesses' && (
