@@ -19,7 +19,6 @@ interface HeaderProps {
   onActiveMatterChange: (id: string) => void;
   onNewMatterCreated: (newMatter: Matter) => void;
   onShowLandingPage?: () => void;
-  onOpenBiometrics?: () => void;
 }
 
 export default function Header({
@@ -29,8 +28,7 @@ export default function Header({
   activeMatterId,
   onActiveMatterChange,
   onNewMatterCreated,
-  onShowLandingPage,
-  onOpenBiometrics
+  onShowLandingPage
 }: HeaderProps) {
   const { language, setLanguage, t, isRtl } = useLanguage();
   const { theme, toggleTheme, isDark } = useTheme();
@@ -354,7 +352,6 @@ export default function Header({
         onOpenNotifications={() => setShowNotificationDropdown(true)}
         onOpenSearch={() => setShowSearchModal(true)}
         onOpenNewMatterModal={() => setShowModal(true)}
-        onOpenBiometrics={onOpenBiometrics}
         matters={matters}
         activeMatterId={activeMatterId}
         onActiveMatterChange={onActiveMatterChange}
@@ -618,18 +615,6 @@ export default function Header({
           </button>
         )}
 
-        {/* Biometric Security Lock Button */}
-        {onOpenBiometrics && currentMode === 'Lawyer' && (
-          <button
-            onClick={onOpenBiometrics}
-            className="px-2.5 py-2 bg-teal-950 text-teal-100 hover:bg-teal-900 border border-teal-700/80 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0"
-            title={isRtl ? 'الأمان البيومتري (FaceID / بصمة)' : 'Biometric Security (FaceID / TouchID)'}
-          >
-            <Fingerprint className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="hidden md:inline">{isRtl ? 'بصمة الأمان' : 'Biometric Auth'}</span>
-          </button>
-        )}
-
         {/* Dedicated Case Summary Print Button */}
         <button
           type="button"
@@ -780,15 +765,6 @@ export default function Header({
                     <ShieldCheck className="w-4 h-4 text-indigo-600" />
                     <span>{isRtl ? 'فحص تعارض المصالح الأخلاقي' : 'Ethics & Conflict Check'}</span>
                   </button>
-                  {onOpenBiometrics && (
-                    <button
-                      onClick={() => { setShowUserDropdown(false); onOpenBiometrics(); }}
-                      className="w-full text-left rtl:text-right px-2.5 py-1.5 hover:bg-slate-50 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
-                    >
-                      <Fingerprint className="w-4 h-4 text-emerald-600" />
-                      <span>{isRtl ? 'إعدادات الأمان البيومتري' : 'Biometric Security Lock'}</span>
-                    </button>
-                  )}
                   <button
                     onClick={() => { setShowUserDropdown(false); logout(); }}
                     className="w-full text-left rtl:text-right px-2.5 py-1.5 hover:bg-rose-50 text-rose-600 rounded-lg flex items-center gap-2 transition-colors cursor-pointer pt-2 border-t border-slate-100"

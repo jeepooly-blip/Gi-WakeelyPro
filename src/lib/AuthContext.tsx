@@ -55,134 +55,123 @@ const DEFAULT_USER: UserProfile = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(() => {
-    const saved = localStorage.getItem('wakeely_user_profile');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return DEFAULT_USER;
-      }
-    }
-    return DEFAULT_USER;
-  });
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  // Check current session from server on mount
   useEffect(() => {
-    if (user) {
-      localStorage.setItem('wakeely_user_profile', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('wakeely_user_profile');
-    }
-  }, [user]);
+    const checkSession = async () => {
+      try {
+        const token = localStorage.getItem('wakeely_auth_token');
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        const res = await fetch('/api/auth/me', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+        } else {
+          setUser(null);
+          localStorage.removeItem('wakeely_auth_token');
+        }
+      } catch (err) {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkSession();
+  }, []);
 
   const login = async (email: string, password?: string): Promise<boolean> => {
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: password || 'WakeelyPro#2026' }),
-      });
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: password || '' }),
+    });
 
-      if (!res.ok) {
-        throw new Error('Authentication failed');
-      }
-
-      const data = await res.json();
-      if (data.token) {
-        localStorage.setItem('wakeely_auth_token', data.token);
-      }
-      setUser(data.user);
-      return true;
-    } catch (err) {
-      // Fallback for offline mode
-      const updatedUser: UserProfile = {
-        ...DEFAULT_USER,
-        email: email.trim(),
-        name: email.split('@')[0].replace('.', ' ').toUpperCase() || DEFAULT_USER.name,
-      };
-      setUser(updatedUser);
-      return true;
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ error: 'Invalid login credentials' }));
+      throw new Error(errorData.error || 'Authentication failed');
     }
-  };
 
-  const signup = async (userData: Partial<UserProfile>, password?: string): Promise<boolean> => {
-    try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: userData.name,
-          email: userData.email,
-          password: password || 'WakeelyPro#2026',
-          firmName: userData.firmName,
-          barAssociationId: userData.barAssociationId,
-          jurisdiction: userData.jurisdiction,
-          accountType: userData.accountType,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Registration failed');
-      }
-
-      const data = await res.json();
-      if (data.token) {
-        localStorage.setItem('wakeely_auth_token', data.token);
-      }
-      setUser(data.user);
-      return true;
-    } catch (err) {
-      const newUser: UserProfile = {
-        id: `usr_${Date.now()}`,
-        name: userData.name || 'Adv. Legal Counsel',
-        email: userData.email || 'counsel@firm.law',
-        firmName: userData.firmName || 'Premier Legal Chambers',
-        role: userData.role || 'Senior Associate',
-        barAssociationId: userData.barAssociationId || 'BAR-2025-001',
-        jurisdiction: userData.jurisdiction || 'Jordan & UAE',
-        accountType: userData.accountType || 'Law Firm',
-        subscriptionTier: 'Free Trial',
-        planStatus: 'Trial',
-        trialDaysLeft: 14,
-        seats: 1,
-        maxSeats: 2,
-        billingCycle: 'Monthly',
-        renewalDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
-        biometricEnabled: false,
-      };
-
-      setUser(newUser);
-      return true;
+    const data = await res.json();
+    if (data.token) {
+      localStorage.setItem('wakeely_auth_token', data.token);
     }
-  };
-
-  const resetPassword = async (email: string): Promise<boolean> => {
-    await new Promise((res) => setTimeout(res, 500));
+    setUser(data.user);
     return true;
   };
 
-  const logout = () => {
+  const signup = async (userData: Partial<UserProfile>, password?: string): Promise<boolean> => {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: userData.name,
+        email: userData.email,
+        password: password || '',
+        firmName: userData.firmName,
+        barAssociationId: userData.barAssociationId,
+        jurisdiction: userData.jurisdiction,
+        accountType: userData.accountType,
+      }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ error: 'Registration failed' }));
+      throw new Error(errorData.error || 'Registration failed');
+    }
+
+    const data = await res.json();
+    if (data.token) {
+      localStorage.setItem('wakeely_auth_token', data.token);
+    }
+    setUser(data.user);
+    return true;
+  };
+
+  const resetPassword = async (email: string): Promise<boolean> => {
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    return res.ok;
+  };
+
+  const logout = async () => {
+    const token = localStorage.getItem('wakeely_auth_token');
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+    }).catch(() => {});
+
+    localStorage.removeItem('wakeely_auth_token');
     setUser(null);
   };
 
   const upgradeSubscription = async (tier: SubscriptionTier, billingCycle: 'Monthly' | 'Annual'): Promise<boolean> => {
-    await new Promise((res) => setTimeout(res, 800));
-
     if (!user) return false;
 
-    const maxSeats = tier === 'Enterprise & Arbitration' ? 99 : tier === 'Pro Practice' ? 10 : 1;
+    const token = localStorage.getItem('wakeely_auth_token');
+    const res = await fetch('/api/auth/subscription', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ tier, billingCycle })
+    });
 
-    const updated: UserProfile = {
-      ...user,
-      subscriptionTier: tier,
-      planStatus: 'Active',
-      billingCycle,
-      maxSeats,
-      renewalDate: billingCycle === 'Annual' ? '2027-02-01' : '2026-03-01',
-    };
-
-    setUser(updated);
-    return true;
+    if (res.ok) {
+      const data = await res.json();
+      setUser(data.user);
+      return true;
+    }
+    return false;
   };
 
   const toggleBiometricAuth = (enabled: boolean) => {

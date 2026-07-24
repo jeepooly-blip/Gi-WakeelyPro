@@ -40,8 +40,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin', onS
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Sign In Form State
-  const [email, setEmail] = useState('tareq@wakeely.law');
-  const [password, setPassword] = useState('WakeelyPro#2026');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
 
   // Sign Up Form State
@@ -311,21 +311,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin', onS
                   </>
                 )}
               </button>
-
-              {/* Biometric Passkey Quick Auth option */}
-              <div className="pt-3 border-t border-slate-100 flex flex-col items-center gap-2">
-                <span className="text-[11px] text-slate-400 font-medium">
-                  {isRtl ? 'أو استخدم البصمة البيومترية المعرفية:' : 'Or sign in with Passkey / Hardware Biometrics:'}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleSignIn}
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-amber-400 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
-                >
-                  <Fingerprint className="w-4 h-4 text-amber-400" />
-                  <span>{isRtl ? 'دخول بلمسة واحدة (Biometric Passkey)' : 'Touch ID / Hardware Passkey Sign In'}</span>
-                </button>
-              </div>
             </form>
           )}
 

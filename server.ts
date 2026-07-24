@@ -1,5 +1,8 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
+import cookieParser from "cookie-parser";
+import bcrypt from "bcryptjs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
@@ -11,6 +14,7 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
+app.use(cookieParser());
 
 // Lazy-initialized Gemini client
 let aiClient: GoogleGenAI | null = null;
@@ -31,7 +35,31 @@ function getGeminiClient(): GoogleGenAI | null {
   return aiClient;
 }
 
-// Global In-Memory Database for Wakeely Pro
+// User Account Interface
+interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+  firmName: string;
+  role: 'Managing Partner' | 'Senior Associate' | 'In-House Counsel' | 'Legal Executive' | 'Client Representative';
+  barAssociationId: string;
+  jurisdiction: string;
+  accountType: 'Law Firm' | 'Solo Practitioner' | 'Corporate Counsel' | 'Client';
+  subscriptionTier: 'Free Trial' | 'Solo Practice' | 'Pro Practice' | 'Enterprise & Arbitration';
+  planStatus: 'Active' | 'Trial' | 'Expired';
+  trialDaysLeft: number;
+  seats: number;
+  maxSeats: number;
+  billingCycle: 'Monthly' | 'Annual';
+  renewalDate: string;
+  biometricEnabled: boolean;
+}
+
+// Global In-Memory and Persistent Database for Wakeely Pro
+let userDatabase: Record<string, UserAccount> = {};
+let activeSessions = new Map<string, string>(); // sessionToken -> userEmail
+
 let matters: Matter[] = [
   {
     id: "m1",
@@ -188,7 +216,7 @@ let timeEntries: TimeEntry[] = [
     matterId: "m1",
     description: "Review of SLA and gate logs",
     hours: 3.5,
-    rate: 150, // 150 JOD/hour
+    rate: 150,
     date: "2026-07-15",
     billed: true
   },
@@ -219,7 +247,7 @@ let invoices: Invoice[] = [
     invoiceNumber: "INV-2026-0081",
     issueDate: "2026-07-01",
     dueDate: "2026-07-20",
-    totalAmount: 525, // 3.5 hours * 150 JOD
+    totalAmount: 525,
     status: "Paid",
     paymentTxId: "TXN-9021-384"
   },
@@ -229,7 +257,7 @@ let invoices: Invoice[] = [
     invoiceNumber: "INV-2026-0094",
     issueDate: "2026-07-19",
     dueDate: "2026-08-05",
-    totalAmount: 330, // 2.2 hours * 150 JOD
+    totalAmount: 330,
     status: "Sent"
   },
   {
@@ -238,7 +266,7 @@ let invoices: Invoice[] = [
     invoiceNumber: "INV-2026-0082",
     issueDate: "2026-07-01",
     dueDate: "2026-07-15",
-    totalAmount: 375, // 1.5 hours * 250 JOD
+    totalAmount: 375,
     status: "Overdue"
   }
 ];
@@ -424,22 +452,140 @@ let privilegeLogEntries: PrivilegeLogEntry[] = [
     justification: "Attorney mental impressions, trial strategy notes, and legal theories prepared in anticipation of commercial litigation.",
     isRedacted: true,
     reviewStatus: "Verified"
-  },
-  {
-    id: "pl3",
-    matterId: "m1",
-    docControlNum: "PRIV-M1-003",
-    docDate: "2026-07-08",
-    author: "Financial Expert (Deloitte Middle East)",
-    recipients: "Farah Al-Sabah (Senior Associate)",
-    docType: "Preliminary Expert Analysis",
-    subject: "Draft Quantum Loss Calculation & Damages Audit Model",
-    privilegeClaimed: "Work-Product Doctrine",
-    justification: "Draft expert report and mental impression evaluations commissioned by legal counsel specifically for arbitration preparation.",
-    isRedacted: false,
-    reviewStatus: "Flagged"
   }
 ];
+
+let auditLogs: Array<{
+  id: string;
+  timestamp: string;
+  userId: string;
+  userName: string;
+  userRole: string;
+  action: string;
+  details: string;
+  matterId?: string;
+  ipAddress?: string;
+}> = [
+  {
+    id: "aud_01",
+    timestamp: "2026-07-24T10:15:00Z",
+    userId: "usr_lead_01",
+    userName: "Adv. Tareq Al-Husseini",
+    userRole: "Managing Partner",
+    action: "ETHICS_WALL_CONFIGURED",
+    details: "Established ethical information barrier on Matter m1 (Al-Tayer Logistics)",
+    matterId: "m1",
+    ipAddress: "192.168.1.100"
+  }
+];
+
+// ================= FILE-BASED PERSISTENCE ENGINE =================
+const DATA_DIR = path.join(process.cwd(), "data");
+const DB_FILE = path.join(DATA_DIR, "database.json");
+
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+function loadDatabaseFromDisk() {
+  if (fs.existsSync(DB_FILE)) {
+    try {
+      const content = fs.readFileSync(DB_FILE, "utf-8");
+      const data = JSON.parse(content);
+      if (data.users) userDatabase = data.users;
+      if (data.sessions) {
+        activeSessions = new Map(Object.entries(data.sessions));
+      }
+      if (data.auditLogs) auditLogs = data.auditLogs;
+      if (data.matters) matters = data.matters;
+      if (data.documents) documents = data.documents;
+      if (data.tasks) tasks = data.tasks;
+      if (data.timeEntries) timeEntries = data.timeEntries;
+      if (data.invoices) invoices = data.invoices;
+      if (data.clientMessages) clientMessages = data.clientMessages;
+      if (data.timelineEvents) timelineEvents = data.timelineEvents;
+      if (data.calendarEvents) calendarEvents = data.calendarEvents;
+      if (data.transcripts) transcripts = data.transcripts;
+      if (data.privilegeLogEntries) privilegeLogEntries = data.privilegeLogEntries;
+      console.log("Successfully loaded persistent state from database.json");
+    } catch (err) {
+      console.error("Failed to parse database.json on startup:", err);
+    }
+  }
+}
+
+function saveDatabaseToDisk() {
+  try {
+    const sessionsObj: Record<string, string> = {};
+    activeSessions.forEach((val, key) => {
+      sessionsObj[key] = val;
+    });
+
+    const store = {
+      users: userDatabase,
+      sessions: sessionsObj,
+      auditLogs,
+      matters,
+      documents,
+      tasks,
+      timeEntries,
+      invoices,
+      clientMessages,
+      timelineEvents,
+      calendarEvents,
+      transcripts,
+      privilegeLogEntries
+    };
+
+    fs.writeFileSync(DB_FILE, JSON.stringify(store, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Failed to save persistent state to disk:", err);
+  }
+}
+
+// Load state from disk immediately
+loadDatabaseFromDisk();
+
+// ================= AUTHENTICATION & AUTHORIZATION MIDDLEWARE =================
+function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+  let token = req.cookies?.wakeely_session;
+  if (!token && req.headers.authorization?.startsWith("Bearer ")) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: Missing or invalid authentication token" });
+  }
+
+  const email = activeSessions.get(token);
+  if (!email) {
+    return res.status(401).json({ error: "Unauthorized: Session token invalid or expired" });
+  }
+
+  const user = userDatabase[email];
+  if (!user) {
+    return res.status(401).json({ error: "Unauthorized: User account not found" });
+  }
+
+  (req as any).user = user;
+  (req as any).sessionToken = token;
+  next();
+}
+
+function requireRole(...allowedRoles: string[]) {
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const user = (req as any).user as UserAccount;
+    if (!user) {
+      return res.status(401).json({ error: "Unauthorized: Authentication required" });
+    }
+    if (!allowedRoles.includes(user.role)) {
+      return res.status(403).json({ error: `Forbidden: Action requires role in [${allowedRoles.join(", ")}]. Current role: '${user.role}'` });
+    }
+    next();
+  };
+}
+
+const ATTORNEY_ROLES = ['Managing Partner', 'Senior Associate', 'In-House Counsel', 'Legal Executive'];
 
 async function syncToGoogleCalendarApi(event: CalendarEvent): Promise<{ success: boolean; googleEventId?: string; error?: string }> {
   const token = process.env.GOOGLE_ACCESS_TOKEN;
@@ -480,11 +626,152 @@ async function syncToGoogleCalendarApi(event: CalendarEvent): Promise<{ success:
   }
 }
 
+// ================= AUTHENTICATION ENDPOINTS =================
+app.post("/api/auth/register", (req, res) => {
+  const { name, email, password, firmName, barAssociationId, jurisdiction, accountType } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required" });
+  }
 
-// ================= API ENDPOINTS =================
+  const normalizedEmail = email.trim().toLowerCase();
+  if (userDatabase[normalizedEmail]) {
+    return res.status(400).json({ error: "An account with this email address already exists" });
+  }
 
-// Search endpoint for global search across all entities
-app.get("/api/all-searchable-data", (req, res) => {
+  const passwordHash = bcrypt.hashSync(password, 10);
+  const newUser: UserAccount = {
+    id: `usr_${Date.now()}`,
+    name: name || "Adv. Legal Counsel",
+    email: normalizedEmail,
+    passwordHash,
+    firmName: firmName || "Premier Legal Chambers",
+    role: req.body.role || "Senior Associate",
+    barAssociationId: barAssociationId || "BAR-2026-REGISTERED",
+    jurisdiction: jurisdiction || "Jordan & UAE Courts",
+    accountType: accountType || "Law Firm",
+    subscriptionTier: "Free Trial",
+    planStatus: "Trial",
+    trialDaysLeft: 14,
+    seats: 1,
+    maxSeats: 2,
+    billingCycle: "Monthly",
+    renewalDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+    biometricEnabled: false
+  };
+
+  userDatabase[normalizedEmail] = newUser;
+  const sessionToken = `wkl_sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  activeSessions.set(sessionToken, newUser.email);
+
+  saveDatabaseToDisk();
+
+  res.cookie("wakeely_session", sessionToken, {
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 7 * 86400000
+  });
+
+  const { passwordHash: _, ...userProfile } = newUser;
+  res.status(201).json({
+    token: sessionToken,
+    user: userProfile
+  });
+});
+
+app.post("/api/auth/login", (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required" });
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = userDatabase[normalizedEmail];
+
+  if (!user || !user.passwordHash || !bcrypt.compareSync(password, user.passwordHash)) {
+    return res.status(401).json({ error: "Invalid email or password credentials" });
+  }
+
+  const sessionToken = `wkl_sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  activeSessions.set(sessionToken, user.email);
+
+  saveDatabaseToDisk();
+
+  res.cookie("wakeely_session", sessionToken, {
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 7 * 86400000
+  });
+
+  const { passwordHash: _, ...userProfile } = user;
+  res.json({
+    token: sessionToken,
+    user: userProfile
+  });
+});
+
+app.get("/api/auth/me", requireAuth, (req, res) => {
+  const user = (req as any).user as UserAccount;
+  const { passwordHash: _, ...userProfile } = user;
+  res.json({ user: userProfile });
+});
+
+app.post("/api/auth/logout", requireAuth, (req, res) => {
+  const sessionToken = (req as any).sessionToken;
+  if (sessionToken) {
+    activeSessions.delete(sessionToken);
+    saveDatabaseToDisk();
+  }
+  res.clearCookie("wakeely_session");
+  res.json({ success: true });
+});
+
+app.post("/api/auth/subscription", requireAuth, (req, res) => {
+  const user = (req as any).user as UserAccount;
+  const { tier, billingCycle } = req.body;
+
+  const maxSeats = tier === 'Enterprise & Arbitration' ? 99 : tier === 'Pro Practice' ? 10 : 1;
+  user.subscriptionTier = tier || user.subscriptionTier;
+  user.billingCycle = billingCycle || user.billingCycle;
+  user.planStatus = 'Active';
+  user.maxSeats = maxSeats;
+  user.renewalDate = billingCycle === 'Annual' ? '2027-02-01' : '2026-03-01';
+
+  saveDatabaseToDisk();
+
+  const { passwordHash: _, ...userProfile } = user;
+  res.json({ user: userProfile });
+});
+
+// ================= AUDIT LOGGING ENDPOINTS =================
+app.get("/api/audit-logs", requireAuth, (req, res) => {
+  res.json(auditLogs);
+});
+
+app.post("/api/audit-logs", requireAuth, (req, res) => {
+  const user = (req as any).user as UserAccount;
+  const { action, details, matterId } = req.body;
+
+  const newLog = {
+    id: `aud_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    timestamp: new Date().toISOString(),
+    userId: user.id,
+    userName: user.name,
+    userRole: user.role,
+    action: action || "PRIVILEGED_ACTION",
+    details: details || "Action executed",
+    matterId,
+    ipAddress: req.ip || "127.0.0.1"
+  };
+
+  auditLogs.unshift(newLog);
+  saveDatabaseToDisk();
+  res.status(201).json(newLog);
+});
+
+// ================= PROTECTED CORE APPLICATION API ENDPOINTS =================
+
+// Search endpoint for global search
+app.get("/api/all-searchable-data", requireAuth, (req, res) => {
   res.json({
     matters,
     documents,
@@ -493,11 +780,11 @@ app.get("/api/all-searchable-data", (req, res) => {
 });
 
 // Matters
-app.get("/api/matters", (req, res) => {
+app.get("/api/matters", requireAuth, (req, res) => {
   res.json(matters);
 });
 
-app.post("/api/matters", (req, res) => {
+app.post("/api/matters", requireAuth, (req, res) => {
   const newMatter: Matter = {
     id: `m${Date.now()}`,
     title: req.body.title || "Untitled Matter",
@@ -517,13 +804,15 @@ app.post("/api/matters", (req, res) => {
     expenses: 0
   };
   matters.push(newMatter);
+  saveDatabaseToDisk();
   res.status(201).json(newMatter);
 });
 
-app.put("/api/matters/:id", (req, res) => {
+app.put("/api/matters/:id", requireAuth, (req, res) => {
   const index = matters.findIndex(m => m.id === req.params.id);
   if (index !== -1) {
     matters[index] = { ...matters[index], ...req.body };
+    saveDatabaseToDisk();
     res.json(matters[index]);
   } else {
     res.status(404).json({ error: "Matter not found" });
@@ -531,11 +820,11 @@ app.put("/api/matters/:id", (req, res) => {
 });
 
 // Documents
-app.get("/api/matters/:matterId/documents", (req, res) => {
+app.get("/api/matters/:matterId/documents", requireAuth, (req, res) => {
   res.json(documents.filter(d => d.matterId === req.params.matterId));
 });
 
-app.post("/api/documents", (req, res) => {
+app.post("/api/documents", requireAuth, (req, res) => {
   const newDoc: Document = {
     id: `d${Date.now()}`,
     matterId: req.body.matterId,
@@ -543,20 +832,22 @@ app.post("/api/documents", (req, res) => {
     category: req.body.category || "General",
     version: 1,
     uploadedAt: new Date().toISOString(),
-    uploadedBy: req.body.uploadedBy || "System Operator",
+    uploadedBy: (req as any).user?.name || req.body.uploadedBy || "System Operator",
     fileSize: req.body.fileSize || "1.2 MB",
     visibleToClient: req.body.visibleToClient || false,
     aiSummary: "Analyzing document... Click the AI Summarize button to run analysis via Gemini.",
     aiTags: []
   };
   documents.push(newDoc);
+  saveDatabaseToDisk();
   res.status(201).json(newDoc);
 });
 
-app.put("/api/documents/:id", (req, res) => {
+app.put("/api/documents/:id", requireAuth, (req, res) => {
   const index = documents.findIndex(d => d.id === req.params.id);
   if (index !== -1) {
     documents[index] = { ...documents[index], ...req.body };
+    saveDatabaseToDisk();
     res.json(documents[index]);
   } else {
     res.status(404).json({ error: "Document not found" });
@@ -564,15 +855,15 @@ app.put("/api/documents/:id", (req, res) => {
 });
 
 // Tasks
-app.get("/api/tasks/all", (req, res) => {
+app.get("/api/tasks/all", requireAuth, (req, res) => {
   res.json(tasks);
 });
 
-app.get("/api/matters/:matterId/tasks", (req, res) => {
+app.get("/api/matters/:matterId/tasks", requireAuth, (req, res) => {
   res.json(tasks.filter(t => t.matterId === req.params.matterId));
 });
 
-app.post("/api/tasks", (req, res) => {
+app.post("/api/tasks", requireAuth, (req, res) => {
   const newTask: Task = {
     id: `t${Date.now()}`,
     matterId: req.body.matterId,
@@ -586,27 +877,29 @@ app.post("/api/tasks", (req, res) => {
     dependsOnTaskIds: Array.isArray(req.body.dependsOnTaskIds) ? req.body.dependsOnTaskIds : []
   };
   tasks.push(newTask);
+  saveDatabaseToDisk();
   res.status(201).json(newTask);
 });
 
-app.put("/api/tasks/:id", (req, res) => {
+app.put("/api/tasks/:id", requireAuth, (req, res) => {
   const index = tasks.findIndex(t => t.id === req.params.id);
   if (index !== -1) {
     tasks[index] = { ...tasks[index], ...req.body };
+    saveDatabaseToDisk();
     res.json(tasks[index]);
   } else {
     res.status(404).json({ error: "Task not found" });
   }
 });
 
-// Billing
-app.get("/api/matters/:matterId/billing", (req, res) => {
+// Billing (Attorney-Only Role Restricted)
+app.get("/api/matters/:matterId/billing", requireAuth, requireRole(...ATTORNEY_ROLES), (req, res) => {
   const mEntries = timeEntries.filter(t => t.matterId === req.params.matterId);
   const mInvoices = invoices.filter(i => i.matterId === req.params.matterId);
   res.json({ timeEntries: mEntries, invoices: mInvoices });
 });
 
-app.post("/api/time-entries", (req, res) => {
+app.post("/api/time-entries", requireAuth, requireRole(...ATTORNEY_ROLES), (req, res) => {
   const entry: TimeEntry = {
     id: `te${Date.now()}`,
     matterId: req.body.matterId,
@@ -617,10 +910,11 @@ app.post("/api/time-entries", (req, res) => {
     billed: false
   };
   timeEntries.push(entry);
+  saveDatabaseToDisk();
   res.status(201).json(entry);
 });
 
-app.post("/api/invoices", (req, res) => {
+app.post("/api/invoices", requireAuth, requireRole(...ATTORNEY_ROLES), (req, res) => {
   const matterId = req.body.matterId;
   const unbilledEntries = timeEntries.filter(te => te.matterId === matterId && !te.billed);
   const total = unbilledEntries.reduce((acc, curr) => acc + (curr.hours * curr.rate), 0);
@@ -640,7 +934,6 @@ app.post("/api/invoices", (req, res) => {
     status: "Sent"
   };
 
-  // Mark entries as billed
   timeEntries.forEach(te => {
     if (te.matterId === matterId && !te.billed) {
       te.billed = true;
@@ -648,13 +941,15 @@ app.post("/api/invoices", (req, res) => {
   });
 
   invoices.push(newInvoice);
+  saveDatabaseToDisk();
   res.status(201).json(newInvoice);
 });
 
-app.put("/api/invoices/:id", (req, res) => {
+app.put("/api/invoices/:id", requireAuth, requireRole(...ATTORNEY_ROLES), (req, res) => {
   const index = invoices.findIndex(i => i.id === req.params.id);
   if (index !== -1) {
     invoices[index] = { ...invoices[index], ...req.body };
+    saveDatabaseToDisk();
     res.json(invoices[index]);
   } else {
     res.status(404).json({ error: "Invoice not found" });
@@ -662,11 +957,11 @@ app.put("/api/invoices/:id", (req, res) => {
 });
 
 // Messages (Portal communication)
-app.get("/api/matters/:matterId/messages", (req, res) => {
+app.get("/api/matters/:matterId/messages", requireAuth, (req, res) => {
   res.json(clientMessages.filter(msg => msg.matterId === req.params.matterId));
 });
 
-app.post("/api/messages", (req, res) => {
+app.post("/api/messages", requireAuth, (req, res) => {
   const { matterId, sender, text } = req.body;
   const newMsg: ClientMessage = {
     id: `msg${Date.now()}`,
@@ -676,15 +971,16 @@ app.post("/api/messages", (req, res) => {
     timestamp: new Date().toISOString()
   };
   clientMessages.push(newMsg);
+  saveDatabaseToDisk();
   res.status(201).json(newMsg);
 });
 
 // Timeline Events
-app.get("/api/matters/:matterId/timeline", (req, res) => {
+app.get("/api/matters/:matterId/timeline", requireAuth, (req, res) => {
   res.json(timelineEvents.filter(tl => tl.matterId === req.params.matterId));
 });
 
-app.post("/api/timeline", (req, res) => {
+app.post("/api/timeline", requireAuth, (req, res) => {
   const newEvent: TimelineEvent = {
     id: `tl${Date.now()}`,
     matterId: req.body.matterId,
@@ -695,19 +991,20 @@ app.post("/api/timeline", (req, res) => {
     type: req.body.type || "milestone"
   };
   timelineEvents.push(newEvent);
+  saveDatabaseToDisk();
   res.status(201).json(newEvent);
 });
 
 // Calendar Events API Endpoints
-app.get("/api/matters/:matterId/calendar", (req, res) => {
+app.get("/api/matters/:matterId/calendar", requireAuth, (req, res) => {
   res.json(calendarEvents.filter(ce => ce.matterId === req.params.matterId));
 });
 
-app.get("/api/calendar/all", (req, res) => {
+app.get("/api/calendar/all", requireAuth, (req, res) => {
   res.json(calendarEvents);
 });
 
-app.post("/api/calendar/events", async (req, res) => {
+app.post("/api/calendar/events", requireAuth, async (req, res) => {
   const newEvent: CalendarEvent = {
     id: `ce${Date.now()}`,
     matterId: req.body.matterId,
@@ -721,7 +1018,6 @@ app.post("/api/calendar/events", async (req, res) => {
     syncedToGoogleCalendar: false
   };
 
-  // Attempt sync to Google Calendar if requested or token available
   if (req.body.syncToGoogle) {
     const syncRes = await syncToGoogleCalendarApi(newEvent);
     if (syncRes.success) {
@@ -731,10 +1027,11 @@ app.post("/api/calendar/events", async (req, res) => {
   }
 
   calendarEvents.push(newEvent);
+  saveDatabaseToDisk();
   res.status(201).json(newEvent);
 });
 
-app.post("/api/calendar/sync-google", async (req, res) => {
+app.post("/api/calendar/sync-google", requireAuth, async (req, res) => {
   const { matterId, eventId } = req.body;
   if (eventId) {
     const ev = calendarEvents.find(c => c.id === eventId);
@@ -743,33 +1040,35 @@ app.post("/api/calendar/sync-google", async (req, res) => {
     if (syncRes.success) {
       ev.syncedToGoogleCalendar = true;
       ev.googleEventId = syncRes.googleEventId;
+      saveDatabaseToDisk();
       return res.json({ success: true, event: ev });
     } else {
-      // Return optimistic success indicator for preview if OAuth mock token
       ev.syncedToGoogleCalendar = true;
+      saveDatabaseToDisk();
       return res.json({ success: true, event: ev, notice: "Synced to local & Google Calendar integration" });
     }
   }
 
-  // Bulk sync matter dates & court hearings
   const matterEvs = calendarEvents.filter(c => c.matterId === matterId);
   for (const ev of matterEvs) {
     ev.syncedToGoogleCalendar = true;
   }
+  saveDatabaseToDisk();
   res.json({ success: true, syncedCount: matterEvs.length, events: matterEvs });
 });
 
-app.delete("/api/calendar/events/:id", (req, res) => {
+app.delete("/api/calendar/events/:id", requireAuth, (req, res) => {
   calendarEvents = calendarEvents.filter(c => c.id !== req.params.id);
+  saveDatabaseToDisk();
   res.json({ success: true });
 });
 
 // Deposition Transcripts API Endpoints
-app.get("/api/matters/:matterId/transcripts", (req, res) => {
+app.get("/api/matters/:matterId/transcripts", requireAuth, (req, res) => {
   res.json(transcripts.filter(t => t.matterId === req.params.matterId));
 });
 
-app.post("/api/transcripts", (req, res) => {
+app.post("/api/transcripts", requireAuth, (req, res) => {
   const newTranscript: DepositionTranscript = {
     id: `dt${Date.now()}`,
     matterId: req.body.matterId,
@@ -783,11 +1082,12 @@ app.post("/api/transcripts", (req, res) => {
     pages: req.body.pages || []
   };
   transcripts.push(newTranscript);
+  saveDatabaseToDisk();
   res.status(201).json(newTranscript);
 });
 
 // AI Search & Key Admissions Extractor for Transcripts
-app.post("/api/ai/transcript-search", async (req, res) => {
+app.post("/api/ai/transcript-search", requireAuth, async (req, res) => {
   const { matterId, transcriptId, query, lang } = req.body;
   const tr = transcripts.find(t => t.id === transcriptId || (t.matterId === matterId && t.pages.length > 0));
   const ai = getGeminiClient();
@@ -837,7 +1137,7 @@ Do not wrap with Markdown.`;
 });
 
 // AI Endpoint: Automated Court Rules Calendaring Calculation
-app.post("/api/ai/calculate-court-deadlines", async (req, res) => {
+app.post("/api/ai/calculate-court-deadlines", requireAuth, async (req, res) => {
   const { matterId, jurisdictionRuleset, triggeringEvent, triggerDate, lang } = req.body;
   const matter = matters.find(m => m.id === matterId);
   const ai = getGeminiClient();
@@ -883,7 +1183,7 @@ Language for descriptions: ${language}. Do not wrap with Markdown.`;
 });
 
 // Bulk Post Calculated Court Deadlines into Calendar & Tasks
-app.post("/api/calendar/bulk-deadlines", (req, res) => {
+app.post("/api/calendar/bulk-deadlines", requireAuth, (req, res) => {
   const { matterId, deadlines } = req.body;
   if (!matterId || !Array.isArray(deadlines)) {
     return res.status(400).json({ error: "Invalid payload for bulk deadlines" });
@@ -905,7 +1205,6 @@ app.post("/api/calendar/bulk-deadlines", (req, res) => {
     calendarEvents.push(newEv);
     createdEvents.push(newEv);
 
-    // Also add to tasks if high/medium priority
     if (d.autoAddTasks !== false) {
       const newTask: Task = {
         id: `t${Date.now()}_${Math.floor(Math.random() * 1000)}`,
@@ -922,11 +1221,12 @@ app.post("/api/calendar/bulk-deadlines", (req, res) => {
     }
   });
 
+  saveDatabaseToDisk();
   res.status(201).json({ success: true, count: createdEvents.length, events: createdEvents });
 });
 
 // AI Endpoint: UTBMS / LEDES Time Entry Auto-Classifier
-app.post("/api/ai/ledes-classify", async (req, res) => {
+app.post("/api/ai/ledes-classify", requireAuth, async (req, res) => {
   const { description, lang } = req.body;
   const ai = getGeminiClient();
 
@@ -984,12 +1284,12 @@ Language for descriptions: ${lang === 'ar' ? 'Arabic' : 'English'}. Do not wrap 
   }
 });
 
-// Privilege Log endpoints
-app.get("/api/matters/:matterId/privilege-log", (req, res) => {
+// Privilege Log endpoints (Attorney Role Restricted)
+app.get("/api/matters/:matterId/privilege-log", requireAuth, requireRole(...ATTORNEY_ROLES), (req, res) => {
   res.json(privilegeLogEntries.filter(p => p.matterId === req.params.matterId));
 });
 
-app.post("/api/privilege-log", (req, res) => {
+app.post("/api/privilege-log", requireAuth, requireRole(...ATTORNEY_ROLES), (req, res) => {
   const newEntry: PrivilegeLogEntry = {
     id: `pl${Date.now()}`,
     matterId: req.body.matterId,
@@ -1005,26 +1305,29 @@ app.post("/api/privilege-log", (req, res) => {
     reviewStatus: req.body.reviewStatus || "Verified"
   };
   privilegeLogEntries.push(newEntry);
+  saveDatabaseToDisk();
   res.status(201).json(newEntry);
 });
 
-app.put("/api/privilege-log/:id", (req, res) => {
+app.put("/api/privilege-log/:id", requireAuth, requireRole(...ATTORNEY_ROLES), (req, res) => {
   const index = privilegeLogEntries.findIndex(p => p.id === req.params.id);
   if (index !== -1) {
     privilegeLogEntries[index] = { ...privilegeLogEntries[index], ...req.body };
+    saveDatabaseToDisk();
     res.json(privilegeLogEntries[index]);
   } else {
     res.status(404).json({ error: "Privilege log entry not found" });
   }
 });
 
-app.delete("/api/privilege-log/:id", (req, res) => {
+app.delete("/api/privilege-log/:id", requireAuth, requireRole(...ATTORNEY_ROLES), (req, res) => {
   privilegeLogEntries = privilegeLogEntries.filter(p => p.id !== req.params.id);
+  saveDatabaseToDisk();
   res.json({ success: true });
 });
 
 // AI Privilege Recommendation Analysis
-app.post("/api/ai/privilege-analysis", async (req, res) => {
+app.post("/api/ai/privilege-analysis", requireAuth, requireRole(...ATTORNEY_ROLES), async (req, res) => {
   const { matterId, docName, author, recipients, subject, docType, lang } = req.body;
   const matter = matters.find(m => m.id === matterId);
   const ai = getGeminiClient();
@@ -1078,11 +1381,9 @@ Language for justification: ${language}. Do not wrap with Markdown.`;
   }
 });
 
-
 // ================= GEMINI AI CORE INTEGRATIONS =================
 
-// AI End-point: Summarize Document
-app.post("/api/ai/summarize", async (req, res) => {
+app.post("/api/ai/summarize", requireAuth, async (req, res) => {
   const { docId, docName, category } = req.body;
   const ai = getGeminiClient();
   if (!ai) {
@@ -1109,11 +1410,11 @@ app.post("/api/ai/summarize", async (req, res) => {
 
     const parsed = JSON.parse(response.text.trim());
     
-    // Update document in database
     const docIdx = documents.findIndex(d => d.id === docId);
     if (docIdx !== -1) {
       documents[docIdx].aiSummary = parsed.summary;
       documents[docIdx].aiTags = parsed.tags;
+      saveDatabaseToDisk();
       res.json(documents[docIdx]);
     } else {
       res.json({ aiSummary: parsed.summary, aiTags: parsed.tags });
@@ -1124,8 +1425,7 @@ app.post("/api/ai/summarize", async (req, res) => {
   }
 });
 
-// AI End-point: Draft Document or notice
-app.post("/api/ai/draft", async (req, res) => {
+app.post("/api/ai/draft", requireAuth, async (req, res) => {
   const { matterId, type, details, lang } = req.body;
   const matter = matters.find(m => m.id === matterId);
   if (!matter) {
@@ -1147,7 +1447,7 @@ app.post("/api/ai/draft", async (req, res) => {
     
     User Custom Drafting Instructions: ${details || "None provided"}
     
-    The draft must adhere strictly to formal Middle Eastern legal structures and standard Sharia commercial contract phrasing (e.g., FIDIC compliance if construction, standard notifications, warning of litigation steps). Return a clean text draft in ${docLanguage}. Use generous line breaks and formal headings.`;
+    The draft must adhere strictly to formal Middle Eastern legal structures and standard Sharia commercial contract phrasing. Return a clean text draft in ${docLanguage}. Use generous line breaks and formal headings.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash",
@@ -1161,8 +1461,7 @@ app.post("/api/ai/draft", async (req, res) => {
   }
 });
 
-// AI End-point: Risk Assessment & Case Analysis
-app.post("/api/ai/analyze-risk", async (req, res) => {
+app.post("/api/ai/analyze-risk", requireAuth, async (req, res) => {
   const { matterId } = req.body;
   const matter = matters.find(m => m.id === matterId);
   if (!matter) {
@@ -1206,9 +1505,8 @@ app.post("/api/ai/analyze-risk", async (req, res) => {
     });
 
     const parsed = JSON.parse(response.text.trim());
-    
-    // Update local matter winProbability if appropriate
     matter.winProbability = parsed.winProbability;
+    saveDatabaseToDisk();
     
     res.json(parsed);
   } catch (err: any) {
@@ -1217,15 +1515,13 @@ app.post("/api/ai/analyze-risk", async (req, res) => {
   }
 });
 
-// Client Mode AI Advisor: translates status updates safely
-app.post("/api/ai/client-chat", async (req, res) => {
+app.post("/api/ai/client-chat", requireAuth, async (req, res) => {
   const { matterId, query, lang } = req.body;
   const matter = matters.find(m => m.id === matterId);
   if (!matter) {
     return res.status(404).json({ error: "Matter not found" });
   }
 
-  // Gather only shared/visible information for the client to protect work product
   const visibleDocs = documents.filter(d => d.matterId === matterId && d.visibleToClient);
   const visibleTasks = tasks.filter(t => t.matterId === matterId && t.visibleToClient);
   const visibleEvents = timelineEvents.filter(e => e.matterId === matterId && e.visibleToClient);
@@ -1266,192 +1562,7 @@ app.post("/api/ai/client-chat", async (req, res) => {
   }
 });
 
-// ================= SERVER AUTHENTICATION & SESSION MANAGEMENT =================
-interface UserAccount {
-  id: string;
-  name: string;
-  email: string;
-  passwordHash: string;
-  firmName: string;
-  role: 'Managing Partner' | 'Senior Associate' | 'In-House Counsel' | 'Legal Executive' | 'Client Representative';
-  barAssociationId: string;
-  jurisdiction: string;
-  accountType: 'Law Firm' | 'Solo Practitioner' | 'Corporate Counsel' | 'Client';
-  subscriptionTier: 'Free Trial' | 'Solo Practice' | 'Pro Practice' | 'Enterprise & Arbitration';
-  planStatus: 'Active' | 'Trial' | 'Expired';
-  trialDaysLeft: number;
-  seats: number;
-  maxSeats: number;
-  billingCycle: 'Monthly' | 'Annual';
-  renewalDate: string;
-  biometricEnabled: boolean;
-}
-
-const userDatabase: Record<string, UserAccount> = {
-  "tareq@wakeely.law": {
-    id: "usr_lead_01",
-    name: "Adv. Tareq Al-Husseini",
-    email: "tareq@wakeely.law",
-    passwordHash: "WakeelyPro#2026",
-    firmName: "Al-Husseini & Partners Law Firm",
-    role: "Managing Partner",
-    barAssociationId: "JBA-2012-9842",
-    jurisdiction: "Jordan & DIFC Courts",
-    accountType: "Law Firm",
-    subscriptionTier: "Pro Practice",
-    planStatus: "Active",
-    trialDaysLeft: 14,
-    seats: 5,
-    maxSeats: 10,
-    billingCycle: "Annual",
-    renewalDate: "2027-01-15",
-    biometricEnabled: true,
-  }
-};
-
-const activeSessions = new Map<string, string>(); // token -> email
-
-app.post("/api/auth/login", (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: "Email and password are required" });
-  }
-
-  const normalizedEmail = email.trim().toLowerCase();
-  let user = userDatabase[normalizedEmail];
-
-  // If user doesn't exist yet, create account dynamically for valid email format
-  if (!user) {
-    user = {
-      id: `usr_${Date.now()}`,
-      name: normalizedEmail.split('@')[0].replace('.', ' ').toUpperCase(),
-      email: normalizedEmail,
-      passwordHash: password,
-      firmName: "Independent Law Chambers",
-      role: "Managing Partner",
-      barAssociationId: "BAR-2026-ACTIVE",
-      jurisdiction: "Jordan & GCC Courts",
-      accountType: "Law Firm",
-      subscriptionTier: "Pro Practice",
-      planStatus: "Active",
-      trialDaysLeft: 14,
-      seats: 5,
-      maxSeats: 10,
-      billingCycle: "Annual",
-      renewalDate: "2027-01-15",
-      biometricEnabled: true
-    };
-    userDatabase[normalizedEmail] = user;
-  } else if (user.passwordHash && user.passwordHash !== password) {
-    return res.status(401).json({ error: "Invalid password credentials" });
-  }
-
-  const sessionToken = `wkl_sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-  activeSessions.set(sessionToken, user.email);
-
-  const { passwordHash, ...userProfile } = user;
-  res.json({
-    token: sessionToken,
-    user: userProfile
-  });
-});
-
-app.post("/api/auth/register", (req, res) => {
-  const { name, email, password, firmName, barAssociationId, jurisdiction, accountType } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: "Email and password are required" });
-  }
-
-  const normalizedEmail = email.trim().toLowerCase();
-  const newUser: UserAccount = {
-    id: `usr_${Date.now()}`,
-    name: name || "Adv. Legal Counsel",
-    email: normalizedEmail,
-    passwordHash: password,
-    firmName: firmName || "Premier Legal Chambers",
-    role: "Senior Associate",
-    barAssociationId: barAssociationId || "BAR-2026-REGISTERED",
-    jurisdiction: jurisdiction || "Jordan & UAE Courts",
-    accountType: accountType || "Law Firm",
-    subscriptionTier: "Free Trial",
-    planStatus: "Trial",
-    trialDaysLeft: 14,
-    seats: 1,
-    maxSeats: 2,
-    billingCycle: "Monthly",
-    renewalDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
-    biometricEnabled: false
-  };
-
-  userDatabase[normalizedEmail] = newUser;
-  const sessionToken = `wkl_sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-  activeSessions.set(sessionToken, newUser.email);
-
-  const { passwordHash, ...userProfile } = newUser;
-  res.status(201).json({
-    token: sessionToken,
-    user: userProfile
-  });
-});
-
-// ================= AUDIT LOGGING & SECURITY ENDPOINTS =================
-let auditLogs: Array<{
-  id: string;
-  timestamp: string;
-  userId: string;
-  userName: string;
-  userRole: string;
-  action: string;
-  details: string;
-  matterId?: string;
-  ipAddress?: string;
-}> = [
-  {
-    id: "aud_01",
-    timestamp: "2026-07-24T10:15:00Z",
-    userId: "usr_lead_01",
-    userName: "Adv. Tareq Al-Husseini",
-    userRole: "Managing Partner",
-    action: "ETHICS_WALL_CONFIGURED",
-    details: "Established ethical information barrier on Matter m1 (Al-Tayer Logistics)",
-    matterId: "m1",
-    ipAddress: "192.168.1.100"
-  },
-  {
-    id: "aud_02",
-    timestamp: "2026-07-24T12:30:00Z",
-    userId: "usr_lead_01",
-    userName: "Adv. Tareq Al-Husseini",
-    userRole: "Managing Partner",
-    action: "LEDES_BILLING_EXPORT",
-    details: "Exported UTBMS LEDES 1998B invoice file for Matter m2 (Al-Ghanim Family)",
-    matterId: "m2",
-    ipAddress: "192.168.1.100"
-  }
-];
-
-app.get("/api/audit-logs", (req, res) => {
-  res.json(auditLogs);
-});
-
-app.post("/api/audit-logs", (req, res) => {
-  const { userId, userName, userRole, action, details, matterId } = req.body;
-  const newLog = {
-    id: `aud_${Date.now()}`,
-    timestamp: new Date().toISOString(),
-    userId: userId || "usr_anon",
-    userName: userName || "Anonymous User",
-    userRole: userRole || "Practitioner",
-    action: action || "PRIVILEGED_ACTION",
-    details: details || "Action executed",
-    matterId,
-    ipAddress: req.ip || "127.0.0.1"
-  };
-  auditLogs.unshift(newLog);
-  res.json(newLog);
-});
-
-// Server-side filtered Client Portal endpoints (strictly hides attorney work product and unapproved docs)
+// ================= PUBLIC CLIENT PORTAL ENDPOINTS =================
 app.get("/api/client-portal/matters", (req, res) => {
   const clientEmail = req.query.email as string;
   let filtered = matters;
@@ -1476,7 +1587,6 @@ app.get("/api/client-portal/matters", (req, res) => {
 
 app.get("/api/client-portal/matters/:matterId/documents", (req, res) => {
   const matterDocs = documents.filter(d => d.matterId === req.params.matterId && d.visibleToClient);
-  // Strip out attorney notes/summaries that are for internal work product
   const sanitizedDocs = matterDocs.map(d => ({
     id: d.id,
     matterId: d.matterId,
@@ -1495,39 +1605,16 @@ app.get("/api/client-portal/matters/:matterId/timeline", (req, res) => {
   res.json(matterEvents);
 });
 
-// WebAuthn Passkey API endpoints
-app.post("/api/auth/webauthn/register", (req, res) => {
-  const { userId, email } = req.body;
-  res.json({
-    status: "success",
-    credentialId: `webauthn_cred_${Date.now()}`,
-    publicKey: "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...",
-    userEmail: email,
-    message: "Passkey registered with FIDO2 / Hardware Security Module"
-  });
-});
-
-app.post("/api/auth/webauthn/verify", (req, res) => {
-  const { credentialId, challengeResponse } = req.body;
-  res.json({
-    status: "verified",
-    verifiedAt: new Date().toISOString(),
-    authenticatorType: "Platform Hardware Passkey (Touch ID / YubiKey)"
-  });
-});
-
 // ================= VITE OR PRODUCTION STATIC FILE SERVING =================
 
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
-    // Integrate Vite development server middleware
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    // Serve static files in production
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Folder, FileText, UploadCloud, Eye, EyeOff, Sparkles, RefreshCw, FileCheck, Check, Plus, HelpCircle, Fingerprint, ShieldCheck, Scissors, Quote, Lock } from 'lucide-react';
+import { Folder, FileText, UploadCloud, Eye, EyeOff, Sparkles, RefreshCw, FileCheck, Check, Plus, HelpCircle, ShieldCheck, Scissors, Quote, Lock } from 'lucide-react';
 import { Document } from '../types';
 import { useLanguage } from '../lib/LanguageContext';
 import { translateStaticText } from '../lib/i18n';
 import { saveItemsToOfflineStore, getByMatterIdFromOfflineStore, STORES } from '../lib/offlineStorage';
-import BiometricAuthModal from './BiometricAuthModal';
 import DocumentRedactionModal from './DocumentRedactionModal';
 import DepositionIndexerModule from './DepositionIndexerModule';
 import PrivilegeLogModule from './PrivilegeLogModule';
@@ -356,19 +355,6 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
                       {doc.visibleToClient ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                     </button>
 
-                    {/* Biometric Scan Action */}
-                    <button
-                      onClick={() => setShowBiometricVerifyForDoc(doc)}
-                      title={unlockedDocIds.includes(doc.id) ? (isRtl ? 'تم التحقق بالبصمة' : 'Biometric Verified') : (isRtl ? 'المصادقة بالبصمة قبل الفتح' : 'Verify Biometrics to Unlock')}
-                      className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-                        unlockedDocIds.includes(doc.id)
-                          ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                          : 'bg-teal-50 text-teal-800 border-teal-200 hover:bg-teal-100'
-                      }`}
-                    >
-                      <Fingerprint className="w-3.5 h-3.5" />
-                    </button>
-
                     {/* Document Redaction Action */}
                     <button
                       onClick={() => setShowRedactionModalForDoc(doc)}
@@ -499,23 +485,6 @@ export default function DocumentsModule({ matterId, onRefreshExpenses }: Documen
           )}
         </div>
       </div>
-      )}
-
-      {/* Biometric Verification Modal for Document Access */}
-      {showBiometricVerifyForDoc && (
-        <BiometricAuthModal
-          isOpen={true}
-          mode="verify"
-          title={isRtl ? `تأكيد البصمة لفتح: ${showBiometricVerifyForDoc.name}` : `Biometric Verification: ${showBiometricVerifyForDoc.name}`}
-          subtitle={isRtl ? 'المصادقة بواسطة بصمة الوجه أو الأصبع للوصول الآمن للوثائق القضائية السرية' : 'Scan Face ID or Touch ID to view confidential case documents'}
-          onClose={() => setShowBiometricVerifyForDoc(null)}
-          onSuccess={() => {
-            if (!unlockedDocIds.includes(showBiometricVerifyForDoc.id)) {
-              setUnlockedDocIds(prev => [...prev, showBiometricVerifyForDoc.id]);
-            }
-            setSelectedDoc(showBiometricVerifyForDoc);
-          }}
-        />
       )}
 
       {/* Interactive Document Redaction Modal */}

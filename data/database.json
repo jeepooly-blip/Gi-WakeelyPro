@@ -1,0 +1,484 @@
+{
+  "users": {
+    "partner@wakeely.law": {
+      "id": "usr_1784907652567",
+      "name": "Adv. Test Partner",
+      "email": "partner@wakeely.law",
+      "passwordHash": "$2b$10$Y9qlBjTC/LoyDKicc0RoZ.TOjTlUW9f.iRaZiHuBgW3pwc.E77DfW",
+      "firmName": "Wakeely Test Chambers",
+      "role": "Managing Partner",
+      "barAssociationId": "BAR-2026-REGISTERED",
+      "jurisdiction": "Jordan & UAE Courts",
+      "accountType": "Law Firm",
+      "subscriptionTier": "Free Trial",
+      "planStatus": "Trial",
+      "trialDaysLeft": 14,
+      "seats": 1,
+      "maxSeats": 2,
+      "billingCycle": "Monthly",
+      "renewalDate": "2026-08-07",
+      "biometricEnabled": false
+    },
+    "client@example.com": {
+      "id": "usr_1784907652907",
+      "name": "Client Representative Test",
+      "email": "client@example.com",
+      "passwordHash": "$2b$10$/7gWb3ZoXenloGhU6UKFhO3JlxltTbIbKqMF0WhqwZQjMP/UNQfdu",
+      "firmName": "Premier Legal Chambers",
+      "role": "Client Representative",
+      "barAssociationId": "BAR-2026-REGISTERED",
+      "jurisdiction": "Jordan & UAE Courts",
+      "accountType": "Law Firm",
+      "subscriptionTier": "Free Trial",
+      "planStatus": "Trial",
+      "trialDaysLeft": 14,
+      "seats": 1,
+      "maxSeats": 2,
+      "billingCycle": "Monthly",
+      "renewalDate": "2026-08-07",
+      "biometricEnabled": false
+    }
+  },
+  "sessions": {
+    "wkl_sess_1784907652567_6iuqw57": "partner@wakeely.law",
+    "wkl_sess_1784907652794_nr7a8d7": "partner@wakeely.law",
+    "wkl_sess_1784907652907_mychxa8": "client@example.com"
+  },
+  "auditLogs": [
+    {
+      "id": "aud_1784907652918_m733",
+      "timestamp": "2026-07-24T15:40:52.918Z",
+      "userId": "usr_1784907652907",
+      "userName": "Client Representative Test",
+      "userRole": "Client Representative",
+      "action": "SUSPICIOUS_EXPORT",
+      "details": "Attempted privilege export",
+      "ipAddress": "127.0.0.1"
+    },
+    {
+      "id": "aud_01",
+      "timestamp": "2026-07-24T10:15:00Z",
+      "userId": "usr_lead_01",
+      "userName": "Adv. Tareq Al-Husseini",
+      "userRole": "Managing Partner",
+      "action": "ETHICS_WALL_CONFIGURED",
+      "details": "Established ethical information barrier on Matter m1 (Al-Tayer Logistics)",
+      "matterId": "m1",
+      "ipAddress": "192.168.1.100"
+    }
+  ],
+  "matters": [
+    {
+      "id": "m1",
+      "title": "Al-Tayer Logistics vs. Global Port Authority",
+      "description": "Multi-party commercial contract dispute regarding delayed shipments, localized custom clearances, and force majeure claims in Jebel Ali Free Zone (JAFZ). Requires Sharia contract compliance review.",
+      "jurisdiction": "Dubai Commercial Court (DIFC-compliant)",
+      "clientName": "Tariq Al-Tayer",
+      "clientEmail": "tariq@altayer-logistics.ae",
+      "opposingParty": "Global Port Authority",
+      "opposingCounsel": "Baker & McKenzie Middle East",
+      "judge": "Judge Abdulrahman Al-Mansoori",
+      "court": "Dubai Court of First Instance",
+      "statuteOfLimitations": "2027-02-15",
+      "riskLevel": "High",
+      "status": "Active",
+      "winProbability": 75,
+      "budget": 15000,
+      "expenses": 4200
+    },
+    {
+      "id": "m2",
+      "title": "Al-Ghanim Family Corporate Restructuring",
+      "description": "Complex reorganization of a multi-generational family estate and group holding company across Kuwait and UAE. Includes cross-border assets, trust setup, and liquidation analysis.",
+      "jurisdiction": "Kuwait Court of Cassation & DIFC Wills Registry",
+      "clientName": "Fatima Al-Ghanim",
+      "clientEmail": "fatima@alghanim-holding.kw",
+      "opposingParty": "Minority Shareholder Faction",
+      "opposingCounsel": "Al-Jouan Legal Chamber",
+      "judge": "Justice Tareq Al-Saeed",
+      "court": "Kuwait Corporate Tribunal",
+      "statuteOfLimitations": "2028-11-30",
+      "riskLevel": "Medium",
+      "status": "Active",
+      "winProbability": 90,
+      "budget": 35000,
+      "expenses": 12500
+    },
+    {
+      "id": "m3",
+      "title": "PetroRiyadh Solar Project Arbitration",
+      "description": "Arbitration proceedings for construction delays on a 150MW utility-scale solar project under FIDIC Silver Book conditions. High exposure claim involving supply chain disruptions.",
+      "jurisdiction": "Saudi Commercial Arbitration Center (SCCA), Riyadh",
+      "clientName": "Eng. Khalid bin Fahd",
+      "clientEmail": "k.fahd@petroriyadh.sa",
+      "opposingParty": "Helios Renewable Systems",
+      "opposingCounsel": "Clifford Chance (Riyadh Office)",
+      "judge": "Dr. S. Al-Suwailem (Arbitrator)",
+      "court": "SCCA Panel No. 4",
+      "statuteOfLimitations": "2026-12-01",
+      "riskLevel": "High",
+      "status": "Active",
+      "winProbability": 60,
+      "budget": 80000,
+      "expenses": 34000
+    }
+  ],
+  "documents": [
+    {
+      "id": "d1",
+      "matterId": "m1",
+      "name": "JAFZ_Logistics_Service_Agreement_2024.pdf",
+      "category": "Contract",
+      "version": 3,
+      "uploadedAt": "2026-06-12T10:30:00Z",
+      "uploadedBy": "Farah Al-Sabah (Senior Associate)",
+      "fileSize": "4.2 MB",
+      "visibleToClient": true,
+      "aiSummary": "Logistics SLA between Al-Tayer Logistics and GPA. Section 14.2 contains a disputed liquidated damages clause charging 15,000 JOD per day of delay, subject to force majeure caps.",
+      "aiTags": [
+        "SLA",
+        "Disputed Clause",
+        "Liquidated Damages",
+        "Force Majeure"
+      ]
+    },
+    {
+      "id": "d2",
+      "matterId": "m1",
+      "name": "Pleading_Statement_of_Claim_v1.docx",
+      "category": "Pleading",
+      "version": 1,
+      "uploadedAt": "2026-07-02T14:15:00Z",
+      "uploadedBy": "Farah Al-Sabah (Senior Associate)",
+      "fileSize": "1.8 MB",
+      "visibleToClient": false,
+      "aiSummary": "Draft Statement of Claim alleging GPA's breach of contract due to arbitrary port gate closures. Seeking 120,000 JOD in direct damages.",
+      "aiTags": [
+        "Claim",
+        "Pleading",
+        "Port Gates",
+        "Direct Damages"
+      ]
+    },
+    {
+      "id": "d3",
+      "matterId": "m2",
+      "name": "Al-Ghanim_Shareholder_Trust_Draft.pdf",
+      "category": "Corporate",
+      "version": 2,
+      "uploadedAt": "2026-07-10T09:00:00Z",
+      "uploadedBy": "Walid Al-Gharaballi (Partner)",
+      "fileSize": "8.5 MB",
+      "visibleToClient": true,
+      "aiSummary": "Proposed trust restructure separating commercial operations from real estate holding. Restructuring will secure asset distribution in line with family agreements and Kuwait commercial law.",
+      "aiTags": [
+        "Trust",
+        "Restructuring",
+        "Estate Planning",
+        "Family Protocol"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "matterId": "m1",
+      "title": "Obtain Port Gate Logs from JAFZ Customs Authority",
+      "description": "Request official logs of port gate closures for July 3-7 to substantiate GPA closures claim.",
+      "assignedTo": "Farah Al-Sabah",
+      "dueDate": "2026-07-25",
+      "status": "In Progress",
+      "priority": "High",
+      "visibleToClient": true,
+      "dependsOnTaskIds": []
+    },
+    {
+      "id": "t2",
+      "matterId": "m1",
+      "title": "Draft Amended Statement of Claim",
+      "description": "Integrate GPA's force majeure defense and update damages calculation.",
+      "assignedTo": "Walid Al-Gharaballi",
+      "dueDate": "2026-07-28",
+      "status": "To Do",
+      "priority": "High",
+      "visibleToClient": false,
+      "dependsOnTaskIds": [
+        "t1"
+      ]
+    },
+    {
+      "id": "t3",
+      "matterId": "m1",
+      "title": "Prepare Client Deposition Brief",
+      "description": "Brief Tariq Al-Tayer on cross-examination strategy for the upcoming court hearing.",
+      "assignedTo": "Farah Al-Sabah",
+      "dueDate": "2026-08-01",
+      "status": "Completed",
+      "priority": "Medium",
+      "visibleToClient": true,
+      "dependsOnTaskIds": [
+        "t2"
+      ]
+    },
+    {
+      "id": "t4",
+      "matterId": "m2",
+      "title": "Review DIFC Wills Registry Compliance",
+      "description": "Ensure the draft trust protocol aligns perfectly with the non-Muslim wills registry rules.",
+      "assignedTo": "Farah Al-Sabah",
+      "dueDate": "2026-07-27",
+      "status": "Under Review",
+      "priority": "Medium",
+      "visibleToClient": false,
+      "dependsOnTaskIds": []
+    }
+  ],
+  "timeEntries": [
+    {
+      "id": "te1",
+      "matterId": "m1",
+      "description": "Review of SLA and gate logs",
+      "hours": 3.5,
+      "rate": 150,
+      "date": "2026-07-15",
+      "billed": true
+    },
+    {
+      "id": "te2",
+      "matterId": "m1",
+      "description": "Drafting responsive pleading notes and defense arguments",
+      "hours": 2.2,
+      "rate": 150,
+      "date": "2026-07-18",
+      "billed": false
+    },
+    {
+      "id": "te3",
+      "matterId": "m2",
+      "description": "Consultation call with Fatima Al-Ghanim regarding trusts",
+      "hours": 1.5,
+      "rate": 250,
+      "date": "2026-07-12",
+      "billed": true
+    }
+  ],
+  "invoices": [
+    {
+      "id": "inv1",
+      "matterId": "m1",
+      "invoiceNumber": "INV-2026-0081",
+      "issueDate": "2026-07-01",
+      "dueDate": "2026-07-20",
+      "totalAmount": 525,
+      "status": "Paid",
+      "paymentTxId": "TXN-9021-384"
+    },
+    {
+      "id": "inv2",
+      "matterId": "m1",
+      "invoiceNumber": "INV-2026-0094",
+      "issueDate": "2026-07-19",
+      "dueDate": "2026-08-05",
+      "totalAmount": 330,
+      "status": "Sent"
+    },
+    {
+      "id": "inv3",
+      "matterId": "m2",
+      "invoiceNumber": "INV-2026-0082",
+      "issueDate": "2026-07-01",
+      "dueDate": "2026-07-15",
+      "totalAmount": 375,
+      "status": "Overdue"
+    }
+  ],
+  "clientMessages": [
+    {
+      "id": "msg1",
+      "matterId": "m1",
+      "sender": "Lawyer",
+      "text": "Dear Tariq, we have finalized the draft deposition brief. Let's schedule a Zoom session tomorrow at 11 AM to practice standard questions from the panel.",
+      "timestamp": "2026-07-18T09:12:00Z"
+    },
+    {
+      "id": "msg2",
+      "matterId": "m1",
+      "sender": "Client",
+      "text": "Excellent work Farah. I am free at 11 AM. Did we include the gate logs from JAFZ customs in the defense bundle?",
+      "timestamp": "2026-07-18T10:05:00Z"
+    },
+    {
+      "id": "msg3",
+      "matterId": "m1",
+      "sender": "Lawyer",
+      "text": "Yes, they are attached to Document 1. I've also set that document to 'Visible' in your portal for review.",
+      "timestamp": "2026-07-18T10:30:00Z"
+    }
+  ],
+  "timelineEvents": [
+    {
+      "id": "tl1",
+      "matterId": "m1",
+      "title": "Statement of Claim Filed",
+      "description": "The initial claim statement filed electronically with the JAFZ commercial dispute tribunal.",
+      "date": "2026-06-10",
+      "visibleToClient": true,
+      "type": "filing"
+    },
+    {
+      "id": "tl2",
+      "matterId": "m1",
+      "title": "Mediation Meeting with Arbitrator",
+      "description": "Briefing session at Dubai Court of First Instance with Judge Al-Mansoori.",
+      "date": "2026-07-05",
+      "visibleToClient": true,
+      "type": "meeting"
+    },
+    {
+      "id": "tl3",
+      "matterId": "m1",
+      "title": "Deadline for Amended Defense Pleading",
+      "description": "Critical final date to file the response to opposing counsel's motion.",
+      "date": "2026-07-30",
+      "visibleToClient": false,
+      "type": "milestone"
+    },
+    {
+      "id": "tl4",
+      "matterId": "m1",
+      "title": "First Formal Hearing",
+      "description": "Dubai Commercial Court Oral Arguments.",
+      "date": "2026-08-15",
+      "visibleToClient": true,
+      "type": "hearing"
+    }
+  ],
+  "calendarEvents": [
+    {
+      "id": "ce1",
+      "matterId": "m1",
+      "title": "Dubai Commercial Court First Hearing",
+      "description": "Oral arguments & pleading review with Judge Abdulrahman Al-Mansoori.",
+      "startDate": "2026-08-15",
+      "time": "10:00 AM",
+      "location": "Dubai Court of First Instance, Hall 4",
+      "category": "Hearing",
+      "syncedToGoogleCalendar": true
+    },
+    {
+      "id": "ce2",
+      "matterId": "m1",
+      "title": "Deadline: File Amended Defense Pleading",
+      "description": "Final submission date for amended pleading regarding JAFZ customs gate logs.",
+      "startDate": "2026-07-30",
+      "time": "02:00 PM",
+      "location": "Online E-Court Portal",
+      "category": "Court Deadline",
+      "syncedToGoogleCalendar": false
+    },
+    {
+      "id": "ce3",
+      "matterId": "m1",
+      "title": "Deposition Strategy Briefing with Tariq Al-Tayer",
+      "description": "Prep client on cross-examination questions.",
+      "startDate": "2026-07-26",
+      "time": "11:00 AM",
+      "location": "Wakeely Conference Room A / Zoom",
+      "category": "Client Meeting",
+      "syncedToGoogleCalendar": true
+    },
+    {
+      "id": "ce4",
+      "matterId": "m2",
+      "title": "SCCA Arbitration Preliminary Panel Hearing",
+      "description": "Initial procedural conference for PetroRiyadh arbitration.",
+      "startDate": "2026-08-05",
+      "time": "09:30 AM",
+      "location": "SCCA Riyadh Center / Hybrid",
+      "category": "Arbitration",
+      "syncedToGoogleCalendar": true
+    }
+  ],
+  "transcripts": [
+    {
+      "id": "dt1",
+      "matterId": "m1",
+      "witnessName": "Capt. Rashid Al-Nuaimi",
+      "witnessRole": "Chief Operations Officer, Global Port Authority",
+      "depositionDate": "2026-07-12",
+      "deponentParty": "Adverse Party",
+      "pagesCount": 3,
+      "uploadedAt": "2026-07-14T11:00:00Z",
+      "keyAdmissionsSummary": "Witness admitted GPA experienced unannounced gate maintenance on July 4, causing a 14-hour queue of Al-Tayer container trucks with no prior force majeure notice.",
+      "pages": [
+        {
+          "pageNumber": 1,
+          "lineNumber": "10-24",
+          "timestamp": "09:30 AM",
+          "speaker": "Q (Farah Al-Sabah) / A (Capt. Rashid)",
+          "text": "Q: Captain Al-Nuaimi, state your full role at GPA during July 2026.\nA: I am the Chief Operating Officer overseeing all container logistics in Jebel Ali Zone 2.\nQ: Were you on duty when Gate 4 was closed on July 4th?\nA: Yes, I received the automated telemetry warning at 06:15 AM.",
+          "isKeyAdmission": false,
+          "tags": [
+            "Role Confirmation",
+            "Gate Telemetry"
+          ]
+        },
+        {
+          "pageNumber": 2,
+          "lineNumber": "02-18",
+          "timestamp": "09:50 AM",
+          "speaker": "Q (Farah Al-Sabah) / A (Capt. Rashid)",
+          "text": "Q: Did GPA issue a prior force majeure notification to Al-Tayer Logistics before shutting Gate 4?\nA: No written notice was sent prior to 2:00 PM that afternoon.\nQ: So for 8 hours, Al-Tayer's reefer trucks were detained without formal notice?\nA: Correct. We were attempting emergency hydraulic repairs.",
+          "isKeyAdmission": true,
+          "tags": [
+            "Key Admission",
+            "No Notice",
+            "Force Majeure Contradiction"
+          ]
+        },
+        {
+          "pageNumber": 3,
+          "lineNumber": "05-22",
+          "timestamp": "10:15 AM",
+          "speaker": "Q (Farah Al-Sabah) / A (Capt. Rashid)",
+          "text": "Q: What was the total spoilage value logged in the port incident ledger?\nA: The internal report logged approximately 120,000 JOD in delayed perishable cargo impact.",
+          "isKeyAdmission": true,
+          "tags": [
+            "Spoilage Damage",
+            "Quantum of Loss"
+          ]
+        }
+      ]
+    }
+  ],
+  "privilegeLogEntries": [
+    {
+      "id": "pl1",
+      "matterId": "m1",
+      "docControlNum": "PRIV-M1-001",
+      "docDate": "2026-06-20",
+      "author": "Farah Al-Sabah (Senior Associate)",
+      "recipients": "Tariq Al-Tayer (Client CEO), Walid Al-Gharaballi (Partner)",
+      "docType": "Legal Opinion Memo",
+      "subject": "Analysis of JAFZ Arbitral Precedents on Port Gate Closures and Force Majeure Defenses",
+      "privilegeClaimed": "Attorney-Client Privilege",
+      "justification": "Confidential legal advice rendered by counsel to client regarding litigation exposure and trial defense strategy.",
+      "isRedacted": true,
+      "reviewStatus": "Verified"
+    },
+    {
+      "id": "pl2",
+      "matterId": "m1",
+      "docControlNum": "PRIV-M1-002",
+      "docDate": "2026-07-01",
+      "author": "Walid Al-Gharaballi (Partner)",
+      "recipients": "Farah Al-Sabah (Senior Associate)",
+      "docType": "Work-Product Draft",
+      "subject": "Internal Trial Strategy Notes & Witness Cross-Examination Outline for Capt. Rashid",
+      "privilegeClaimed": "Work-Product Doctrine",
+      "justification": "Attorney mental impressions, trial strategy notes, and legal theories prepared in anticipation of commercial litigation.",
+      "isRedacted": true,
+      "reviewStatus": "Verified"
+    }
+  ]
+}

@@ -10,7 +10,6 @@ import ClientPortal from './components/ClientPortal';
 import AnalyticsModule from './components/AnalyticsModule';
 import CalendarModule from './components/CalendarModule';
 import LandingPage from './components/LandingPage';
-import BiometricAuthModal from './components/BiometricAuthModal';
 import { Matter } from './types';
 import { RefreshCw, Scale, Sparkles, FolderOpen, CalendarClock, WifiOff, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from './lib/LanguageContext';
@@ -26,7 +25,6 @@ export default function App() {
   const [activeMobileTab, setActiveMobileTab] = useState<'all' | 'analytics' | 'tasks' | 'calendar' | 'docs' | 'ai'>('all');
   const [isOffline, setIsOffline] = useState<boolean>(!navigator.onLine);
   const [usingCachedData, setUsingCachedData] = useState<boolean>(false);
-  const [biometricModalMode, setBiometricModalMode] = useState<'verify' | 'settings' | null>(null);
 
   // Monitor network status
   useEffect(() => {
@@ -169,7 +167,6 @@ export default function App() {
         onActiveMatterChange={(id) => setActiveMatterId(id)}
         onNewMatterCreated={handleNewMatterCreated}
         onShowLandingPage={() => setCurrentView('landing')}
-        onOpenBiometrics={() => setBiometricModalMode('settings')}
       />
 
       {/* Main Panel Controller */}
@@ -263,15 +260,6 @@ export default function App() {
         <span className="text-center">{t.copyright}</span>
         <span>{t.matrixVer}</span>
       </footer>
-
-      {/* Biometric Security Modal */}
-      {biometricModalMode && (
-        <BiometricAuthModal
-          isOpen={true}
-          mode={biometricModalMode}
-          onClose={() => setBiometricModalMode(null)}
-        />
-      )}
 
     </div>
   );
