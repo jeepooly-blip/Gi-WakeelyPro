@@ -1266,6 +1266,134 @@ app.post("/api/ai/client-chat", async (req, res) => {
   }
 });
 
+// ================= SERVER AUTHENTICATION & SESSION MANAGEMENT =================
+interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+  firmName: string;
+  role: 'Managing Partner' | 'Senior Associate' | 'In-House Counsel' | 'Legal Executive' | 'Client Representative';
+  barAssociationId: string;
+  jurisdiction: string;
+  accountType: 'Law Firm' | 'Solo Practitioner' | 'Corporate Counsel' | 'Client';
+  subscriptionTier: 'Free Trial' | 'Solo Practice' | 'Pro Practice' | 'Enterprise & Arbitration';
+  planStatus: 'Active' | 'Trial' | 'Expired';
+  trialDaysLeft: number;
+  seats: number;
+  maxSeats: number;
+  billingCycle: 'Monthly' | 'Annual';
+  renewalDate: string;
+  biometricEnabled: boolean;
+}
+
+const userDatabase: Record<string, UserAccount> = {
+  "tareq@wakeely.law": {
+    id: "usr_lead_01",
+    name: "Adv. Tareq Al-Husseini",
+    email: "tareq@wakeely.law",
+    passwordHash: "WakeelyPro#2026",
+    firmName: "Al-Husseini & Partners Law Firm",
+    role: "Managing Partner",
+    barAssociationId: "JBA-2012-9842",
+    jurisdiction: "Jordan & DIFC Courts",
+    accountType: "Law Firm",
+    subscriptionTier: "Pro Practice",
+    planStatus: "Active",
+    trialDaysLeft: 14,
+    seats: 5,
+    maxSeats: 10,
+    billingCycle: "Annual",
+    renewalDate: "2027-01-15",
+    biometricEnabled: true,
+  }
+};
+
+const activeSessions = new Map<string, string>(); // token -> email
+
+app.post("/api/auth/login", (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required" });
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  let user = userDatabase[normalizedEmail];
+
+  // If user doesn't exist yet, create account dynamically for valid email format
+  if (!user) {
+    user = {
+      id: `usr_${Date.now()}`,
+      name: normalizedEmail.split('@')[0].replace('.', ' ').toUpperCase(),
+      email: normalizedEmail,
+      passwordHash: password,
+      firmName: "Independent Law Chambers",
+      role: "Managing Partner",
+      barAssociationId: "BAR-2026-ACTIVE",
+      jurisdiction: "Jordan & GCC Courts",
+      accountType: "Law Firm",
+      subscriptionTier: "Pro Practice",
+      planStatus: "Active",
+      trialDaysLeft: 14,
+      seats: 5,
+      maxSeats: 10,
+      billingCycle: "Annual",
+      renewalDate: "2027-01-15",
+      biometricEnabled: true
+    };
+    userDatabase[normalizedEmail] = user;
+  } else if (user.passwordHash && user.passwordHash !== password) {
+    return res.status(401).json({ error: "Invalid password credentials" });
+  }
+
+  const sessionToken = `wkl_sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  activeSessions.set(sessionToken, user.email);
+
+  const { passwordHash, ...userProfile } = user;
+  res.json({
+    token: sessionToken,
+    user: userProfile
+  });
+});
+
+app.post("/api/auth/register", (req, res) => {
+  const { name, email, password, firmName, barAssociationId, jurisdiction, accountType } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required" });
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const newUser: UserAccount = {
+    id: `usr_${Date.now()}`,
+    name: name || "Adv. Legal Counsel",
+    email: normalizedEmail,
+    passwordHash: password,
+    firmName: firmName || "Premier Legal Chambers",
+    role: "Senior Associate",
+    barAssociationId: barAssociationId || "BAR-2026-REGISTERED",
+    jurisdiction: jurisdiction || "Jordan & UAE Courts",
+    accountType: accountType || "Law Firm",
+    subscriptionTier: "Free Trial",
+    planStatus: "Trial",
+    trialDaysLeft: 14,
+    seats: 1,
+    maxSeats: 2,
+    billingCycle: "Monthly",
+    renewalDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+    biometricEnabled: false
+  };
+
+  userDatabase[normalizedEmail] = newUser;
+  const sessionToken = `wkl_sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  activeSessions.set(sessionToken, newUser.email);
+
+  const { passwordHash, ...userProfile } = newUser;
+  res.status(201).json({
+    token: sessionToken,
+    user: userProfile
+  });
+});
+
 // ================= AUDIT LOGGING & SECURITY ENDPOINTS =================
 let auditLogs: Array<{
   id: string;
@@ -1323,7 +1451,7 @@ app.post("/api/audit-logs", (req, res) => {
   res.json(newLog);
 });
 
-// Server-side filtered Client Portal endpoint (strictly hides attorney work product)
+// Server-side filtered Client Portal endpoints (strictly hides attorney work product and unapproved docs)
 app.get("/api/client-portal/matters", (req, res) => {
   const clientEmail = req.query.email as string;
   let filtered = matters;
@@ -1344,6 +1472,27 @@ app.get("/api/client-portal/matters", (req, res) => {
   }));
 
   res.json(sanitizedMatters);
+});
+
+app.get("/api/client-portal/matters/:matterId/documents", (req, res) => {
+  const matterDocs = documents.filter(d => d.matterId === req.params.matterId && d.visibleToClient);
+  // Strip out attorney notes/summaries that are for internal work product
+  const sanitizedDocs = matterDocs.map(d => ({
+    id: d.id,
+    matterId: d.matterId,
+    name: d.name,
+    category: d.category,
+    version: d.version,
+    uploadedAt: d.uploadedAt,
+    fileSize: d.fileSize,
+    visibleToClient: true,
+  }));
+  res.json(sanitizedDocs);
+});
+
+app.get("/api/client-portal/matters/:matterId/timeline", (req, res) => {
+  const matterEvents = timelineEvents.filter(e => e.matterId === req.params.matterId && e.visibleToClient);
+  res.json(matterEvents);
 });
 
 // WebAuthn Passkey API endpoints

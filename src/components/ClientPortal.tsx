@@ -29,10 +29,10 @@ export default function ClientPortal({ activeMatter, onRefreshMatter }: ClientPo
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Documents
-      const dRes = await fetch(`/api/matters/${activeMatter.id}/documents`);
-      const allDocs = dRes.ok ? await dRes.json() : [];
-      setDocs(allDocs.filter((d: Document) => d.visibleToClient));
+      // Server-sanitized Documents for Client Portal
+      const dRes = await fetch(`/api/client-portal/matters/${activeMatter.id}/documents`);
+      const sanitizedDocs = dRes.ok ? await dRes.json() : [];
+      setDocs(sanitizedDocs);
 
       // Billing/Invoices
       const bRes = await fetch(`/api/matters/${activeMatter.id}/billing`);
@@ -44,10 +44,10 @@ export default function ClientPortal({ activeMatter, onRefreshMatter }: ClientPo
       const allMsgs = mRes.ok ? await mRes.json() : [];
       setMessages(allMsgs);
 
-      // Timeline
-      const tRes = await fetch(`/api/matters/${activeMatter.id}/timeline`);
-      const allEvents = tRes.ok ? await tRes.json() : [];
-      setTimeline(allEvents.filter((e: TimelineEvent) => e.visibleToClient));
+      // Server-sanitized Timeline
+      const tRes = await fetch(`/api/client-portal/matters/${activeMatter.id}/timeline`);
+      const sanitizedEvents = tRes.ok ? await tRes.json() : [];
+      setTimeline(sanitizedEvents);
     } catch (err) {
       console.error(err);
     } finally {

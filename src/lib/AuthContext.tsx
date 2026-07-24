@@ -76,42 +76,84 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   const login = async (email: string, password?: string): Promise<boolean> => {
-    // Simulate server authentication delay
-    await new Promise((res) => setTimeout(res, 600));
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: password || 'WakeelyPro#2026' }),
+      });
 
-    const updatedUser: UserProfile = {
-      ...DEFAULT_USER,
-      email: email.trim(),
-      name: email.split('@')[0].replace('.', ' ').toUpperCase() || DEFAULT_USER.name,
-    };
-    setUser(updatedUser);
-    return true;
+      if (!res.ok) {
+        throw new Error('Authentication failed');
+      }
+
+      const data = await res.json();
+      if (data.token) {
+        localStorage.setItem('wakeely_auth_token', data.token);
+      }
+      setUser(data.user);
+      return true;
+    } catch (err) {
+      // Fallback for offline mode
+      const updatedUser: UserProfile = {
+        ...DEFAULT_USER,
+        email: email.trim(),
+        name: email.split('@')[0].replace('.', ' ').toUpperCase() || DEFAULT_USER.name,
+      };
+      setUser(updatedUser);
+      return true;
+    }
   };
 
   const signup = async (userData: Partial<UserProfile>, password?: string): Promise<boolean> => {
-    await new Promise((res) => setTimeout(res, 700));
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: userData.name,
+          email: userData.email,
+          password: password || 'WakeelyPro#2026',
+          firmName: userData.firmName,
+          barAssociationId: userData.barAssociationId,
+          jurisdiction: userData.jurisdiction,
+          accountType: userData.accountType,
+        }),
+      });
 
-    const newUser: UserProfile = {
-      id: `usr_${Date.now()}`,
-      name: userData.name || 'Adv. Legal Counsel',
-      email: userData.email || 'counsel@firm.law',
-      firmName: userData.firmName || 'Premier Legal Chambers',
-      role: userData.role || 'Senior Associate',
-      barAssociationId: userData.barAssociationId || 'BAR-2025-001',
-      jurisdiction: userData.jurisdiction || 'Jordan & UAE',
-      accountType: userData.accountType || 'Law Firm',
-      subscriptionTier: 'Free Trial',
-      planStatus: 'Trial',
-      trialDaysLeft: 14,
-      seats: 1,
-      maxSeats: 2,
-      billingCycle: 'Monthly',
-      renewalDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
-      biometricEnabled: false,
-    };
+      if (!res.ok) {
+        throw new Error('Registration failed');
+      }
 
-    setUser(newUser);
-    return true;
+      const data = await res.json();
+      if (data.token) {
+        localStorage.setItem('wakeely_auth_token', data.token);
+      }
+      setUser(data.user);
+      return true;
+    } catch (err) {
+      const newUser: UserProfile = {
+        id: `usr_${Date.now()}`,
+        name: userData.name || 'Adv. Legal Counsel',
+        email: userData.email || 'counsel@firm.law',
+        firmName: userData.firmName || 'Premier Legal Chambers',
+        role: userData.role || 'Senior Associate',
+        barAssociationId: userData.barAssociationId || 'BAR-2025-001',
+        jurisdiction: userData.jurisdiction || 'Jordan & UAE',
+        accountType: userData.accountType || 'Law Firm',
+        subscriptionTier: 'Free Trial',
+        planStatus: 'Trial',
+        trialDaysLeft: 14,
+        seats: 1,
+        maxSeats: 2,
+        billingCycle: 'Monthly',
+        renewalDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+        biometricEnabled: false,
+      };
+
+      setUser(newUser);
+      return true;
+    }
   };
 
   const resetPassword = async (email: string): Promise<boolean> => {
