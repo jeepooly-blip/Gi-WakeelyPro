@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, ShieldCheck, User, Landmark, Plus, RefreshCw, Folder, Languages, Bell, Inbox, Check, FileCheck, Calendar, MessageSquare, Search, Sparkles, Fingerprint, Scan, Sun, Moon, Printer } from 'lucide-react';
+import { Shield, ShieldCheck, User, Landmark, Plus, RefreshCw, Folder, Languages, Bell, Inbox, Check, FileCheck, Calendar, MessageSquare, Search, Sparkles, Fingerprint, Scan, Sun, Moon, Printer, LogOut, Award, Zap, Key } from 'lucide-react';
 import { Matter } from '../types';
 import { useLanguage } from '../lib/LanguageContext';
 import { useTheme } from '../lib/ThemeContext';
+import { useAuth } from '../lib/AuthContext';
 import { translateStaticText } from '../lib/i18n';
 import MobileBottomNav from './MobileBottomNav';
 import GlobalSearchModal from './GlobalSearchModal';
 import ConflictCheckModal from './ConflictCheckModal';
+import AuthModal from './AuthModal';
+import SubscriptionPaywallModal from './SubscriptionPaywallModal';
 
 interface HeaderProps {
   currentMode: 'Lawyer' | 'Client';
@@ -31,9 +34,15 @@ export default function Header({
 }: HeaderProps) {
   const { language, setLanguage, t, isRtl } = useLanguage();
   const { theme, toggleTheme, isDark } = useTheme();
+  const { user, isAuthenticated, logout } = useAuth();
+
   const [showModal, setShowModal] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showPaywallModal, setShowPaywallModal] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+
   const [title, setTitle] = useState('');
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
@@ -700,6 +709,98 @@ export default function Header({
             {t.clientMode}
           </button>
         </div>
+
+        {/* User Account & Subscription Badge Dropdown */}
+        <div className="relative">
+          {user ? (
+            <button
+              onClick={() => setShowUserDropdown(!showUserDropdown)}
+              className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl border border-slate-800 flex items-center gap-2 shadow-xs transition-all cursor-pointer shrink-0"
+            >
+              <div className="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-extrabold text-[11px]">
+                {user.name.charAt(0)}
+              </div>
+              <div className="hidden lg:block text-left rtl:text-right">
+                <span className="block text-[11px] font-bold text-white leading-tight truncate max-w-[110px]">
+                  {user.name}
+                </span>
+                <span className="block text-[9px] font-mono text-amber-400 font-bold uppercase">
+                  {user.subscriptionTier}
+                </span>
+              </div>
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>{isRtl ? 'تسجيل الدخول' : 'Sign In'}</span>
+            </button>
+          )}
+
+          {/* Account Profile Dropdown Menu */}
+          {showUserDropdown && user && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowUserDropdown(false)} />
+              <div className="absolute right-0 rtl:right-auto rtl:left-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 p-4 space-y-3 animate-in fade-in duration-150">
+                <div className="border-b border-slate-100 pb-3">
+                  <h4 className="text-xs font-bold text-slate-900 font-display truncate">{user.name}</h4>
+                  <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
+                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">{user.firmName} • {user.barAssociationId}</p>
+                </div>
+
+                {/* Subscription Badge Card */}
+                <div className="bg-slate-900 text-white rounded-xl p-3 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{isRtl ? 'خطة الاشتراك:' : 'Plan Tier:'}</span>
+                    <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-mono text-[10px] font-extrabold rounded-md uppercase">
+                      {user.subscriptionTier}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-300 flex justify-between">
+                    <span>{isRtl ? 'حالة الحساب:' : 'Status:'} {user.planStatus}</span>
+                    <span>{isRtl ? 'التجديد:' : 'Renews:'} {user.renewalDate}</span>
+                  </div>
+                  <button
+                    onClick={() => { setShowUserDropdown(false); setShowPaywallModal(true); }}
+                    className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-amber-300" />
+                    <span>{isRtl ? 'ترقية / إدارة الاشتراك' : 'Manage Subscription'}</span>
+                  </button>
+                </div>
+
+                {/* Quick Menu Options */}
+                <div className="space-y-1 text-xs font-medium text-slate-700 pt-1">
+                  <button
+                    onClick={() => { setShowUserDropdown(false); setShowConflictModal(true); }}
+                    className="w-full text-left rtl:text-right px-2.5 py-1.5 hover:bg-slate-50 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                    <span>{isRtl ? 'فحص تعارض المصالح الأخلاقي' : 'Ethics & Conflict Check'}</span>
+                  </button>
+                  {onOpenBiometrics && (
+                    <button
+                      onClick={() => { setShowUserDropdown(false); onOpenBiometrics(); }}
+                      className="w-full text-left rtl:text-right px-2.5 py-1.5 hover:bg-slate-50 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
+                    >
+                      <Fingerprint className="w-4 h-4 text-emerald-600" />
+                      <span>{isRtl ? 'إعدادات الأمان البيومتري' : 'Biometric Security Lock'}</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setShowUserDropdown(false); logout(); }}
+                    className="w-full text-left rtl:text-right px-2.5 py-1.5 hover:bg-rose-50 text-rose-600 rounded-lg flex items-center gap-2 transition-colors cursor-pointer pt-2 border-t border-slate-100"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>{isRtl ? 'تسجيل الخروج' : 'Sign Out'}</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* NEW MATTER MODAL */}
@@ -832,6 +933,18 @@ export default function Header({
       isOpen={showConflictModal}
       onClose={() => setShowConflictModal(false)}
       matters={matters}
+    />
+
+    {/* Authentication Modal (Sign In / Sign Up / Forgot Password) */}
+    <AuthModal
+      isOpen={showAuthModal}
+      onClose={() => setShowAuthModal(false)}
+    />
+
+    {/* Subscription Tier Models & Paywall Modal */}
+    <SubscriptionPaywallModal
+      isOpen={showPaywallModal}
+      onClose={() => setShowPaywallModal(false)}
     />
     </>
   );

@@ -25,6 +25,9 @@ import {
   Lock
 } from 'lucide-react';
 import { useLanguage } from '../lib/LanguageContext';
+import { useAuth } from '../lib/AuthContext';
+import AuthModal from './AuthModal';
+import SubscriptionPaywallModal from './SubscriptionPaywallModal';
 
 interface LandingPageProps {
   onEnterWorkspace: () => void;
